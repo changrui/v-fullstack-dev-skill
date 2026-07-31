@@ -1,0 +1,33 @@
+# Byte-compiled/V-compiled
+*.v.bk
+*.v.tmp
+*.o
+*.so
+*.dylib
+*.exe
+bin/
+
+# Hermes Agent
+.hermes/
+.hermes_cache/
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+tmp/
+temp/
