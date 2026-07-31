@@ -1,0 +1,157 @@
+// gen_data.v — fast 1BRC dataset generator in PURE V
+// Pair with templates/1brc_solution.v (the parser tolerates both ";" and "; ").
+//
+// Build:
+//   v -cc gcc -cflags '-O3 -march=native' -o bin/gen_data gen_data.v
+// Run (1 billion rows):
+//   ./bin/gen_data measurements.txt 1000000000
+// Resume / append (skip already-written rows):
+//   ./bin/gen_data measurements.txt 1000000000 455000000
+//
+// V 0.5.x gotchas baked into this file (see references/c_ffi_mmap.md too):
+//   - rand.seed() needs EXACTLY 2 u32 (WyRandRNG requirement) -> [u32(42), u32(x)].
+//   - rand.normal(mu:, sigma:) returns !f64 -> always pair with `or { fallback }`.
+//   - f64.str() takes NO args -> format 1-decimal via math.round(v*10)/10 + int.str().
+//   - `strings` must be imported; new_builder() returns a VALUE (mut buf := ...).
+
+import rand
+import os
+import strings
+import math
+
+// 411 cities (official 1BRC list subset). Expand from
+// ~/v/examples/1brc/make-samples/cities.txt for the full set.
+// Order/count does not affect parser correctness — only variety matters.
+const cities = [
+	'Abha', 'Abidjan', 'Abéché', 'Accra', 'Addis Ababa', 'Adelaide', 'Aden',
+	'Ahvaz', 'Albuquerque', 'Alexandra', 'Alexandria', 'Algiers',
+	'Alice Springs', 'Almaty', 'Amsterdam', 'Anadyr', 'Anchorage',
+	'Andorra la Vella', 'Ankara', 'Antananarivo', 'Antsiranana', 'Arkhangelsk',
+	'Ashgabat', 'Asmara', 'Assab', 'Astana', 'Athens', 'Atlanta', 'Auckland',
+	'Austin', 'Baghdad', 'Baguio', 'Baku', 'Baltimore', 'Bamako', 'Bangkok',
+	'Bangui', 'Banjul', 'Barcelona', 'Bata', 'Batumi', 'Beijing', 'Beirut',
+	'Belgrade', 'Belize City', 'Benghazi', 'Bergen', 'Berlin', 'Bilbao',
+	'Birao', 'Bishkek', 'Bissau', 'Blantyre', 'Bloemfontein', 'Boise',
+	'Bordeaux', 'Bosaso', 'Boston', 'Bouaké', 'Bratislava', 'Brazzaville',
+	'Bridgetown', 'Brisbane', 'Brussels', 'Bucharest', 'Budapest', 'Bujumbura',
+	'Bulawayo', 'Burnie', 'Busan', 'Cabo San Lucas', 'Cairns', 'Cairo',
+	'Calgary', 'Canberra', 'Cape Town', 'Changsha', 'Charlotte', 'Chiang Mai',
+	'Chicago', 'Chihuahua', 'Chittagong', 'Chișinău', 'Chongqing',
+	'Christchurch', 'City of San Marino', 'Colombo', 'Columbus', 'Conakry',
+	'Copenhagen', 'Cotonou', 'Cracow', 'Da Lat', 'Da Nang', 'Dakar', 'Dallas',
+	'Damascus', 'Dampier', 'Dar es Salaam', 'Darwin', 'Denpasar', 'Denver',
+	'Detroit', 'Dhaka', 'Dikson', 'Dili', 'Djibouti', 'Dodoma', 'Dolisie',
+	'Douala', 'Dubai', 'Dublin', 'Dunedin', 'Durban', 'Dushanbe', 'Edinburgh',
+	'Edmonton', 'El Paso', 'Entebbe', 'Erbil', 'Erzurum', 'Fairbanks',
+	'Fianarantsoa', 'Frankfurt', 'Fresno', 'Fukuoka', 'Gaborone', 'Gabès',
+	'Gagnoa', 'Gangtok', 'Garissa', 'Garoua', 'George Town', 'Ghanzi',
+	'Gjoa Haven', 'Guadalajara', 'Guangzhou', 'Guatemala City', 'Halifax',
+	'Hamburg', 'Hamilton', 'Hanga Roa', 'Hanoi', 'Harare', 'Harbin', 'Hargeisa',
+	'Hat Yai', 'Havana', 'Helsinki', 'Heraklion', 'Hiroshima', 'Ho Chi Minh City',
+	'Hobart', 'Hong Kong', 'Honiara', 'Honolulu', 'Houston', 'Ifrane',
+	'Indianapolis', 'Iqaluit', 'Irkutsk', 'Istanbul', 'Jacksonville', 'Jakarta',
+	'Jayapura', 'Jerusalem', 'Johannesburg', 'Jos', 'Juba', 'Kabul', 'Kampala',
+	'Kandi', 'Kankan', 'Kano', 'Kansas City', 'Karachi', 'Karonga', 'Kathmandu',
+	'Khartoum', 'Kingston', 'Kinshasa', 'Kolkata', 'Kuala Lumpur', 'Kumasi',
+	'Kunming', 'Kuopio', 'Kuwait City', 'Kyiv', 'Kyoto', 'La Ceiba', 'La Paz',
+	'Lagos', 'Lahore', 'Lake Havasu City', 'Lake Tekapo', 'Las Palmas de Gran Canaria',
+	'Las Vegas', 'Launceston', 'Lhasa', 'Libreville', 'Lisbon', 'Livingstone',
+	'Ljubljana', 'Lodwar', 'Lomé', 'London', 'Los Angeles', 'Louisville',
+	'Luanda', 'Lubumbashi', 'Lusaka', 'Luxembourg City', 'Lviv', 'Lyon',
+	'Madrid', 'Mahajanga', 'Makassar', 'Makurdi', 'Malabo', 'Malé', 'Managua',
+	'Manama', 'Mandalay', 'Mango', 'Manila', 'Maputo', 'Marrakesh', 'Marseille',
+	'Maun', 'Medan', "Mek'ele", 'Melbourne', 'Memphis', 'Mexicali', 'Mexico City',
+	'Miami', 'Milan', 'Milwaukee', 'Minneapolis', 'Minsk', 'Mogadishu',
+	'Mombasa', 'Monaco', 'Moncton', 'Monterrey', 'Montreal', 'Moscow', 'Mumbai',
+	'Murmansk', 'Muscat', 'Mzuzu', "N'Djamena", 'Naha', 'Nairobi',
+	'Nakhon Ratchasima', 'Napier', 'Napoli', 'Nashville', 'Nassau', 'Ndola',
+	'New Delhi', 'New Orleans', 'New York City', 'Ngaoundéré', 'Niamey',
+	'Nicosia', 'Niigata', 'Nouadhibou', 'Nouakchott', 'Novosibirsk', 'Nuuk',
+	'Odesa', 'Odienné', 'Oklahoma City', 'Omaha', 'Oranjestad', 'Oslo', 'Ottawa',
+	'Ouagadougou', 'Ouahigouya', 'Ouarzazate', 'Oulu', 'Palembang', 'Palermo',
+	'Palm Springs', 'Palmerston North', 'Panama City', 'Parakou', 'Paris',
+	'Perth', 'Petropavlovsk-Kamchatsky', 'Philadelphia', 'Phnom Penh', 'Phoenix',
+	'Pittsburgh', 'Podgorica', 'Pointe-Noire', 'Pontianak', 'Port Moresby',
+	'Port Sudan', 'Port Vila', 'Port-Gentil', 'Portland {OR}', 'Porto', 'Prague',
+	'Praia', 'Pretoria', 'Pyongyang', 'Rabat', 'Rangpur', 'Reggane', 'Reykjavík',
+	'Riga', 'Riyadh', 'Rome', 'Roseau', 'Rostov-on-Don', 'Sacramento',
+	'Saint Petersburg', 'Saint-Pierre', 'Salt Lake City', 'San Antonio',
+	'San Diego', 'San Francisco', 'San Jose', 'San José', 'San Juan',
+	'San Salvador', "Sana'a", 'Santo Domingo', 'Sapporo', 'Sarajevo', 'Saskatoon',
+	'Seattle', 'Seoul', 'Seville', 'Shanghai', 'Singapore', 'Skopje', 'Sochi',
+	'Sofia', 'Sokoto', 'Split', "St. John's", 'St. Louis', 'Stockholm',
+	'Surabaya', 'Suva', 'Suwałki', 'Sydney', 'Ségou', 'Tabora', 'Tabriz',
+	'Taipei', 'Tallinn', 'Tamale', 'Tamanrasset', 'Tampa', 'Tashkent', 'Tauranga',
+	'Tbilisi', 'Tegucigalpa', 'Tehran', 'Tel Aviv', 'Thessaloniki', 'Thiès',
+	'Tijuana', 'Timbuktu', 'Tirana', 'Toamasina', 'Tokyo', 'Toliara', 'Toluca',
+	'Toronto', 'Tripoli', 'Tromsø', 'Tucson', 'Tunis', 'Ulaanbaatar', 'Upington',
+	'Vaduz', 'Valencia', 'Valletta', 'Vancouver', 'Veracruz', 'Vienna',
+	'Vientiane', 'Villahermosa', 'Vilnius', 'Virginia Beach', 'Vladivostok',
+	'Warsaw', 'Wau', 'Wellington', 'Whitehorse', 'Wichita', 'Willemstad',
+	'Winnipeg', 'Wrocław', "Xi'an", 'Yakutsk', 'Yangon', 'Yaoundé', 'Yellowknife',
+	'Yerevan', 'Yinchuan', 'Zagreb', 'Zanzibar City', 'Zürich', 'Ürümqi', 'İzmir',
+]
+
+fn main() {
+	if os.args.len < 3 {
+		eprintln('Usage: gen_data <output> <num_rows> [append_from_row]')
+		exit(1)
+	}
+	path := os.args[1]
+	total := os.args[2].int()
+	mut start := 0
+	if os.args.len >= 4 {
+		start = os.args[3].int()
+	}
+
+	append_mode := start > 0
+	mut f := os.open_append(path) or { os.create(path) or { panic(err) } }
+	if append_mode {
+		// re-open in append mode (create above may have just made it)
+		f = os.open_append(path) or { panic(err) }
+	}
+	defer { f.close() }
+
+	// WyRandRNG needs EXACTLY two u32 seeds
+	rand.seed([u32(42), u32(start ^ total)])
+
+	ncities := cities.len
+	mut buf := strings.new_builder(1 << 16)
+	mut written := start
+	mut next_report := written + 50_000_000
+
+	for written < total {
+		city := cities[rand.intn(ncities) or { 0 }]
+		// normal variate around mean 20, stddev 12 (clamped to [-99.9, 99.9])
+		mut t := rand.normal(mu: 20.0, sigma: 12.0) or { 20.0 }
+		if t < -99.9 { t = -99.9 }
+		if t > 99.9 { t = 99.9 }
+		// 1 decimal place — V 0.5.x has no f64.str(n), so format manually
+		mut tempi := int(math.round(t * 10))
+		neg := tempi < 0
+		abs := if neg { -tempi } else { tempi }
+		buf.write_string(city)
+		buf.write_byte(59) // ';'
+		buf.write_string(if neg { '-' } else { '' })
+		buf.write_string((abs / 10).str())
+		buf.write_byte(46) // '.'
+		buf.write_string((abs % 10).str())
+		buf.write_byte(10) // '\n'
+		written++
+
+		// flush in 1 MiB chunks to bound memory
+		if buf.len > (1 << 20) {
+			f.write_string(buf.str()) or { panic(err) }
+			buf.clear()
+		}
+		if written >= next_report {
+			eprintln('${written} / ${total} rows')
+			next_report += 50_000_000
+		}
+	}
+	// final flush
+	if buf.len > 0 {
+		f.write_string(buf.str()) or { panic(err) }
+	}
+	eprintln('Done: ${written} rows -> ${path}')
+}

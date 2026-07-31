@@ -1,0 +1,51 @@
+# GitHub Actions CI gate for a V 0.5.1 project.
+# Copy to .github/workflows/ci.yml. The WHOLE POINT is pinning V to the exact
+# dev commit so CI never drifts into a different nightly and重新-introduces the
+# 0.5.1 compile quirks (net.http body, slice .clone(), pcre Match.get, mut-method
+# locals). Update `commit:` to match your local `~/v/v version` output.
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+# Cancel stale runs on the same ref so a new push supersedes an old one.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gate:
+    name: fmt + vet + test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Pin exact V version + commit (replace ad0e4c9 with your local commit).
+      - name: Install V
+        uses: vlang/install-v@latest
+        with:
+          version: 0.5.1
+          commit: ad0e4c9
+
+      - name: Add V to PATH
+        run: echo "${HOME}/.vlang/bin" >> "$GITHUB_PATH"
+
+      # fmt gate: fail (with a red ::error + diff) if `v fmt -w .` changes anything.
+      - name: v fmt (must be clean)
+        run: |
+          v fmt -w .
+          if ! git diff --quiet; then
+            echo "::error::'v fmt -w .' produced changes — please format locally."
+            git --no-pager diff
+            exit 1
+          fi
+
+      - name: v vet
+        run: v vet .
+
+      # Offline-safe: with no API key the agent falls back to the mock provider,
+      # so this passes in CI without secrets.
+      - name: v test
+        run: v -silent test .

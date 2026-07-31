@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>V 语言：从入门到精通</title>
+<style>
+  :root{
+    --bg:#0d1117; --bg2:#11151c; --card:#161b22; --card2:#1c2230;
+    --line:#283142; --txt:#e6edf3; --mut:#9aa7b5; --acc:#41a6f6; --acc2:#7c5cff;
+    --grn:#3fb950; --red:#f85149; --ylw:#e3b341; --pink:#ff7b9c;
+    --sh:0 10px 40px rgba(0,0,0,.45);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    background:radial-gradient(1200px 800px at 80% -10%, #1b2440 0%, transparent 60%),
+               radial-gradient(1000px 700px at -10% 110%, #1a2b2e 0%, transparent 55%),
+               var(--bg);
+    color:var(--txt);
+    font-family:"Segoe UI","PingFang SC","Microsoft YaHei",system-ui,-apple-system,sans-serif;
+    overflow:hidden;
+  }
+  /* ===== Top bar ===== */
+  #bar{position:fixed;top:0;left:0;right:0;height:54px;display:flex;align-items:center;
+    gap:14px;padding:0 18px;background:linear-gradient(180deg,rgba(13,17,23,.92),rgba(13,17,23,.62));
+    backdrop-filter:blur(8px);border-bottom:1px solid var(--line);z-index:40}
+  #bar .logo{font-weight:800;font-size:18px;letter-spacing:.5px;
+    background:linear-gradient(90deg,var(--acc),var(--acc2));-webkit-background-clip:text;background-clip:text;color:transparent}
+  #bar .sp{flex:1}
+  #bar #clock{font-variant-numeric:tabular-nums;color:var(--mut);font-size:13px}
+  #bar .btn{cursor:pointer;border:1px solid var(--line);background:var(--card);color:var(--txt);
+    padding:6px 11px;border-radius:8px;font-size:13px;transition:.15s}
+  #bar .btn:hover{border-color:var(--acc);color:var(--acc)}
+
+  /* ===== Deck ===== */
+  #deck{position:fixed;inset:54px 0 0 0;overflow:hidden}
+  .slide{position:absolute;inset:0;padding:46px 70px;overflow:auto;
+    display:flex;flex-direction:column;opacity:0;pointer-events:none;
+    transition:transform .62s cubic-bezier(.22,.9,.3,1),opacity .5s ease}
+  .slide.active{opacity:1;pointer-events:auto;transform:translateX(0)!important}
+  .kicker{color:var(--acc);font-weight:700;letter-spacing:2px;font-size:13px;text-transform:uppercase;margin-bottom:6px}
+  h1{font-size:40px;line-height:1.15;margin-bottom:14px;font-weight:800}
+  h2{font-size:30px;font-weight:800;margin-bottom:14px;display:flex;align-items:center;gap:10px}
+  h2 .num{font-size:15px;color:var(--acc);border:1px solid var(--acc);border-radius:8px;padding:2px 9px;font-weight:700}
+  p.lead{color:var(--mut);font-size:16px;max-width:1000px;margin-bottom:18px;line-height:1.7}
+  .grid{display:grid;gap:16px}
+  .g2{grid-template-columns:1fr 1fr}
+  .g3{grid-template-columns:repeat(3,1fr)}
+  .card{background:linear-gradient(180deg,var(--card),var(--card2));border:1px solid var(--line);
+    border-radius:14px;padding:16px 18px;box-shadow:var(--sh)}
+  .card h3{font-size:16px;margin-bottom:8px;color:var(--acc)}
+  .card p,.card li{color:var(--mut);font-size:14px;line-height:1.65}
+  .card ul{margin-left:18px}
+  .kbd{display:inline-block;background:#0b0f14;border:1px solid var(--line);border-bottom-width:2px;
+    border-radius:6px;padding:1px 8px;font-family:ui-monospace,Consolas,monospace;font-size:13px;color:var(--acc)}
+  /* code */
+  pre{background:#0a0e13;border:1px solid var(--line);border-radius:12px;padding:14px 16px;
+    overflow:auto;font-size:13.5px;line-height:1.6;box-shadow:var(--sh)}
+  code{font-family:ui-monospace,"Cascadia Code",Consolas,monospace}
+  pre code{color:#c9d4e0;white-space:pre}
+  .c{color:#6b7787} /* comment */
+  .k{color:#ff7b9c} /* keyword */
+  .s{color:#9ece6a} /* string */
+  .f{color:#7dcfff} /* function */
+  .t{color:#e3b341} /* type */
+  .n{color:#ff9e64} /* number */
+  .tw{background:#0b0f14;border:1px solid var(--line);border-radius:6px;padding:1px 6px;color:var(--acc);font-size:12.5px}
+  /* index */
+  #index{position:fixed;inset:54px 0 0 0;background:rgba(8,11,16,.96);backdrop-filter:blur(6px);
+    z-index:50;display:none;padding:40px 60px;overflow:auto}
+  #index.open{display:block}
+  #index h2{margin-bottom:18px}
+  .idxgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;max-width:1100px}
+  .idxgrid a{display:flex;gap:10px;align-items:baseline;text-decoration:none;color:var(--txt);
+    background:var(--card);border:1px solid var(--line);border-radius:10px;padding:11px 13px;transition:.15s;font-size:14px}
+  .idxgrid a:hover{border-color:var(--acc);transform:translateX(3px);color:var(--acc)}
+  .idxgrid a .i{color:var(--acc);font-weight:700;min-width:22px}
+  .idxgrid a .tt{color:var(--mut)}
+  /* progress dots */
+  #dots{position:fixed;right:16px;top:50%;transform:translateY(-50%);z-index:35;display:flex;flex-direction:column;gap:7px;max-height:80vh;overflow:auto}
+  #dots .d{width:9px;height:9px;border-radius:50%;background:var(--line);cursor:pointer;transition:.2s}
+  #dots .d.on{background:var(--acc);transform:scale(1.4)}
+  #dots .d:hover{background:var(--acc2)}
+  /* footer nav */
+  #nav{position:fixed;bottom:14px;left:50%;transform:translateX(-50%);z-index:35;display:flex;align-items:center;gap:14px;
+    background:rgba(22,27,34,.85);border:1px solid var(--line);padding:8px 14px;border-radius:30px;backdrop-filter:blur(6px)}
+  #nav .pg{color:var(--mut);font-size:13px;min-width:62px;text-align:center;font-variant-numeric:tabular-nums}
+  #nav .nb{cursor:pointer;border:none;background:linear-gradient(90deg,var(--acc),var(--acc2));color:#fff;
+    width:34px;height:34px;border-radius:50%;font-size:18px;display:flex;align-items:center;justify-content:center;transition:.15s}
+  #nav .nb:hover{filter:brightness(1.12)}
+  #nav .nb:disabled{opacity:.35;cursor:not-allowed}
+  .pill{display:inline-block;font-size:12px;padding:2px 9px;border-radius:20px;border:1px solid var(--line);color:var(--mut);margin-right:6px}
+  .pill.acc{color:var(--acc);border-color:var(--acc)}
+  .pill.grn{color:var(--grn);border-color:var(--grn)}
+  .pill.red{color:var(--red);border-color:var(--red)}
+  .pill.ylw{color:var(--ylw);border-color:var(--ylw)}
+  .tip{background:linear-gradient(180deg,#15251c,#13201a);border:1px solid #2c4a36;border-left:3px solid var(--grn);
+    border-radius:10px;padding:12px 14px;color:#bcd9c5;font-size:14px;line-height:1.6}
+  .warn{background:linear-gradient(180deg,#2a1a1c,#241718);border:1px solid #502a2e;border-left:3px solid var(--red);
+    border-radius:10px;padding:12px 14px;color:#e7c2c4;font-size:14px;line-height:1.6}
+  .center{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;text-align:center}
+  table{border-collapse:collapse;width:100%;font-size:14px}
+  th,td{border:1px solid var(--line);padding:8px 11px;text-align:left}
+  th{background:var(--card2);color:var(--acc)}
+  td{color:var(--mut)}
+  .big{font-size:64px;font-weight:800;background:linear-gradient(90deg,var(--acc),var(--acc2),var(--pink));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .taglist{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+</style>
+</head>
+<body>
+<div id="bar">
+  <div class="logo">⌘ V 语言</div>
+  <div class="sp"></div>
+  <div id="clock"></div>
+  <div class="btn" id="btnIdx">☰ 索引</div>
+  <div class="btn" id="btnRand">🎲 随机</div>
+  <div class="btn" id="btnFull">⛶ 全屏</div>
+</div>
+
+<div id="deck"></div>
+
+<div id="index">
+  <h2><span class="num">#</span> 内容索引 · 点击直达</h2>
+  <div class="idxgrid" id="idxgrid"></div>
+</div>
+
+<div id="dots"></div>
+
+<div id="nav">
+  <button class="nb" id="prev">‹</button>
+  <div class="pg" id="pg">1 / 1</div>
+  <button class="nb" id="next">›</button>
+</div>
+
+<script>
+/* ============ 幻灯片数据 ============ */
+const SLIDES = [
+/* 0 封面 */
+{ kicker:"V LANGUAGE", title:"V 语言 · 从入门到精通",
+  html:`<div class="center">
+    <div class="big">V lang</div>
+    <p class="lead" style="text-align:center;font-size:18px">一门简单、快速、安全的编译型语言 —— 来自多个真实小项目的实战经验沉淀</p>
+    <div class="taglist" style="justify-content:center">
+      <span class="pill acc">编译型</span><span class="pill grn">无隐藏内存分配</span>
+      <span class="pill ylw">内置 ORM</span><span class="pill">内置模板</span>
+      <span class="pill">内置 HTTP 服务器</span><span class="pill red">零依赖单一二进制</span>
+    </div>
+    <p class="lead" style="text-align:center;margin-top:26px">使用 <span class="kbd">←</span> <span class="kbd">→</span> 翻页 · <span class="kbd">I</span> 索引 · <span class="kbd">R</span> 随机 · <span class="kbd">F</span> 全屏</p>
+  </div>` },
+
+/* 1 索引概览（文字版，真正的侧栏索引在右上） */
+{ kicker:"ROADMAP", title:"学习路线图",
+  html:`<div class="grid g3">
+    <div class="card"><h3>① 基础</h3><ul>
+      <li>安装与环境</li><li>变量 / 类型</li><li>函数</li><li>控制流</li></ul></div>
+    <div class="card"><h3>② 类型系统</h3><ul>
+      <li>数组 / map</li><li>结构体 / 方法</li><li>接口 / 枚举</li><li>泛型</li></ul></div>
+    <div class="card"><h3>③ 进阶</h3><ul>
+      <li>错误处理</li><li>并发 goroutine</li><li>模块 / JSON</li><li>defer</li></ul></div>
+    <div class="card"><h3>④ 数据库</h3><ul>
+      <li>sqlite ORM</li><li>model 定义</li><li>insert 避坑</li><li>查询查询</li></ul></div>
+    <div class="card"><h3>⑤ Web</h3><ul>
+      <li>HTTP 服务器</li><li>路由</li><li>模板系统</li><li>项目结构</li></ul></div>
+    <div class="card"><h3>⑥ 经验</h3><ul>
+      <li>vet 规范</li><li>字符串判空</li><li>ORM 陷阱</li><li>实战复盘</li></ul></div>
+  </div>
+  <p class="lead" style="margin-top:18px">右侧导航点可任意跳转；点击右上「☰ 索引」查看完整目录。</p>` },
+
+/* 2 V 简介 */
+{ kicker:"INTRO", title:"V 是什么",
+  html:`<div class="grid g2">
+   <div>
+    <div class="card"><h3>设计哲学</h3>
+     <ul>
+      <li>简单：关键字极少，无类继承、无异常、无宏</li>
+      <li>快速：编译以秒计，生成单一可执行文件</li>
+      <li>安全：默认不可变、无 null、无隐藏分配</li>
+      <li>友好：语法接近 Go/C，易上手</li>
+     </ul></div>
+    <div class="card" style="margin-top:14px"><h3>典型用途</h3>
+     <ul><li>命令行工具 · 系统程序</li><li>Web 后端（内置 HTTP + ORM）</li><li>跨平台桌面 / 小游戏</li></ul></div>
+   </div>
+   <div>
+    <pre><code><span class="c">// V 的 “Hello World” 极简</span>
+<span class="k">fn</span> <span class="f">main</span>() {
+    println(<span class="s">'Hello, V!'</span>)
+}</code></pre>
+    <pre><code><span class="c">// 对比 Go（需 package / import）</span>
+<span class="k">package</span> main
+<span class="k">import</span> <span class="s">"fmt"</span>
+<span class="k">func</span> main(){ fmt.Println(<span class="s">"hi"</span>) }</code></pre>
+    <div class="tip">经验：V 文件无需 package 声明即可运行，<code>v run x.v</code> 直接编译执行，迭代极快。</div>
+   </div>
+  </div>` },
+
+/* 3 安装 */
+{ kicker:"SETUP", title:"安装与第一个程序",
+  html:`<div class="grid g2">
+   <div>
+    <pre><code><span class="c"># 1. 克隆官方仓库</span>
+git clone https://github.com/vlang/v
+<span class="k">cd</span> v && make
+
+<span class="c"># 2. 加入 PATH（建议 ~/v）</span>
+<span class="k">export</span> PATH=<span class="s">"$HOME/v:$PATH"</span>
+
+<span class="c"># 3. 校验</span>
+v version</code></pre>
+    <pre><code><span class="c"># 常用命令</span>
+v run   main.v     <span class="c"># 编译并运行</span>
+v -o app main.v    <span class="c"># 编译为二进制</span>
+v fmt -w main.v    <span class="c"># 格式化</span>
+v vet  .           <span class="c"># 静态检查</span>
+v test  .          <span class="c"># 运行测试</span></code></pre>
+   </div>
+   <div>
+    <div class="card"><h3>编写 first.v</h3>
+     <pre><code><span class="k">fn</span> <span class="f">main</span>() {
+    name := <span class="s">'World'</span>
+    println(<span class="s">'Hello, \${name}!'</span>)
+}</code></pre></div>
+    <div class="card" style="margin-top:14px"><h3>运行</h3>
+     <pre><code>$ v run first.v
+Hello, World!</code></pre></div>
+    <div class="warn">避坑：V 使用 <code>:=</code> 声明并初始化（类型推断），用 <code>=</code> 赋值。变量默认不可变，需要修改必须显式声明 <code>mut</code>。</div>
+   </div>
+  </div>` },
+
+/* 4 变量与类型 */
+{ kicker:"BASICS", title:"变量与基础类型",
+  html:`<div class="grid g2">
+   <div>
+    <pre><code><span class="c">// 不可变（默认）</span>
+x := <span class="n">42</span>
+s := <span class="s">'V lang'</span>
+f := <span class="n">3.14</span>
+b := <span class="k">true</span>
+
+<span class="c">// 可变必须加 mut</span>
+mut n := <span class="n">0</span>
+n = n + <span class="n">1</span>
+
+<span class="c">// 显式类型标注</span>
+age: <span class="t">int</span> = <span class="n">18</span>
+price: <span class="t">f64</span> = <span class="n">9.9</span></code></pre>
+    <div class="tip">经验：V 没有 <code>var</code>/<code>let</code>，统一用 <code>:=</code>。未使用的变量会编译报错 —— 强制你写出干净代码。</div>
+   </div>
+   <div>
+    <div class="card"><h3>基础类型</h3>
+     <table>
+      <tr><th>类型</th><th>说明</th></tr>
+      <tr><td><span class="tw">int</span>/<span class="tw">i8..i64</span></td><td>整数</td></tr>
+      <tr><td><span class="tw">f32</span>/<span class="tw">f64</span></td><td>浮点</td></tr>
+      <tr><td><span class="tw">bool</span></td><td>true / false</td></tr>
+      <tr><td><span class="tw">string</span></td><td>UTF-8 字符串</td></tr>
+      <tr><td><span class="tw">rune</span></td><td>单个 Unicode 字符</td></tr>
+      <tr><td><span class="tw">byte</span></td><td>u8</td></tr>
+     </table></div>
+    <div class="card" style="margin-top:14px"><h3>类型推断</h3>
+     <pre><code>y := <span class="n">10</span>        <span class="c">// int</span>
+z := <span class="n">10.0</span>      <span class="c">// f64</span>
+arr := [<span class="n">1</span>,<span class="n">2</span>,<span class="n">3</span>] <span class="c">// []int</span></code></pre></div>
+   </div>
+  </div>` },
+
+/* 5 函数 */
+{ kicker:"FUNCTIONS", title:"函数",
+  html:`<div class="grid g2">
+   <div>
+    <pre><code><span class="c">// 多返回值（无需元组）</span>
+<span class="k">fn</span> <span class="f">divmod</span>(a <span class="t">int</span>, b <span class="t">int</span>) (<span class="t">int</span>, <span class="t">int</span>) {
+    <span class="k">return</span> a / b, a % b
+}
+q, r := divmod(<span class="n">17</span>, <span class="n">5</span>)
+
+<span class="c">// 默认参数</span>
+<span class="k">fn</span> <span class="f">greet</span>(name <span class="t">string</span>, loud <span class="t">bool</span> = <span class="k">false</span>) {
+    s := <span class="k">if</span> loud { name.to_upper() } <span class="k">else</span> { name }
+    println(s)
+}</code></pre>
+   </div>
+   <div>
+    <pre><code><span class="c">// 可变参数</span>
+<span class="k">fn</span> <span class="f">sum</span>(nums <span class="t">...int</span>) <span class="t">int</span> {
+    mut total := <span class="n">0</span>
+    <span class="k">for</span> n <span class="k">in</span> nums { total += n }
+    <span class="k">return</span> total
+}
+println(sum(<span class="n">1</span>,<span class="n">2</span>,<span class="n">3</span>))  <span class="c">// 6</span>
+
+<span class="c">// 函数即值</span>
+f := <span class="f">println</span>
+f(<span class="s">'hi'</span>)</code></pre>
+    <div class="warn">避坑：V 没有「重载」。同名函数只能有一个；想表达可选参数请用默认参数或可变参数。</div>
+   </div>
+  </div>` },
+
+/* 6 控制流 */
+{ kicker:"CONTROL FLOW", title:"控制流：if / for / match",
+  html:`<div class="grid g2">
+   <div>
+    <pre><code><span class="c">// if 无需括号，条件非 bool 会报错</span>
+<span class="k">if</span> x > <span class="n">10</span> { println(<span class="s">'big'</span>) }
+<span class="k">else if</span> x > <span class="n">5</span> { println(<span class="s">'mid'</span>) }
+<span class="k">else</span> { println(<span class="s">'small'</span>) }
+
+<span class="c">// 三目表达式</span>
+s := <span class="k">if</span> ok { <span class="s">'yes'</span> } <span class="k">else</span> { <span class="s">'no'</span> }
+
+<span class="c">// for —— 仅此一种循环关键字</span>
+<span class="k">for</span> i := <span class="n">0</span>; i < <span class="n">3</span>; i++ { }
+<span class="k">for</span> i <span class="k">in</span> <span class="n">0</span>..<span class="n">3</span> { }
+<span class="k">for</span> e <span class="k">in</span> arr { }
+<span class="k">for</span> { }                <span class="c">// 死循环</span>
+<span class="k">for</span> i, e <span class="k">in</span> arr { }  <span class="c">// 带下标</span></code></pre>
+   </div>
+   <div>
+    <pre><code><span class="c">// match —— 比 switch 更强</span>
+<span class="k">match</span> cmd {
+    <span class="s">'start'</span> { start() }
+    <span class="s">'stop'</span>  { stop() }
+    <span class="s">'ping'</span>, <span class="s">'pong'</span> { pong() }
+    <span class="k">else</span>     { println(<span class="s">'unknown'</span>) }
+}
+
+<span class="c">// defer —— 退出作用域前执行</span>
+<span class="k">fn</span> <span class="f">work</span>() {
+    f := open_file()
+    <span class="k">defer</span> { f.close() }
+    <span class="c">// ... 任何退出路径都会关闭文件</span>
+}</code></pre>
+    <div class="tip">经验：<code>match</code> 必须覆盖全部情况或带 <code>else</code>；<code>defer</code> 非常适合资源清理，避免泄漏。</div>
+   </div>
+  </div>` },
+
+/* 7 数组与 map */
+{ kicker:"COLLECTIONS", title:"数组与 map",
+  html:`<div class="grid g2">
+   <div>
+    <pre><code><span class="c">// 数组</span>
+mut a := [<span class="n">1</span>,<span class="n">2</span>,<span class="n">3</span>]
+a << <span class="n">4</span>            <span class="c">// 追加</span>
+println(a.len)   <span class="c">// 4</span>
+a = a.filter(<span class="k">fn</span>(x <span class="t">int</span>) <span class="t">bool</span> { <span class="k">return</span> x % <span class="n">2</span> == <span class="n">0</span> })
+a = a.map(<span class="k">fn</span>(x <span class="t">int</span>) <span class="t">int</span> { <span class="k">return</span> x * <span class="n">2</span> })
+
+<span class="c">// 定长数组（栈上）</span>
+fixed := [<span class="n">3</span>]<span class="t">int</span>{}
+fixed[<span class="n">0</span>] = <span class="n">9</span></code></pre>
+   </div>
+   <div>
+    <pre><code><span class="c">// map</span>
+mut m := <span class="t">map</span>[<span class="t">string</span>]<span class="t">int</span>{}
+m[<span class="s">'a'</span>] = <span class="n">1</span>
+v := m[<span class="s">'a'</span>] <span class="k">or</span> { <span class="n">0</span> }   <span class="c">// 不存在给默认</span>
+
+<span class="c">// 遍历</span>
+<span class="k">for</span> k, val <span class="k">in</span> m {
+    println(<span class="s">'\${k}=\${val}'</span>)
+}</code></pre>
+    <div class="warn">避坑：map 取值可能缺失，必须用 <code>or { }</code> 提供默认值或处理，否则编译不通过。V 不允许「可能为空却不处理」。</div>
+   </div>
+  </div>` },
+
+/* 8 字符串与结构体 */
+{ kicker:"STRUCTS", title:"字符串与结构体",
+  html:`<div class="grid g2">
+   <div>
+    <pre><code><span class="c">// 字符串插值 / 切片</span>
+name := <span class="s">'V'</span>
+msg := <span class="s">'Hello, \${name}!'</span>
+println(msg[<span class="n">0</span>..<span class="n">5</span>])   <span class="c">// Hello</span>
+
+<span class="c">// 常用方法</span>
+s := <span class="s">'  V Lang  '</span>
+s.trim().to_lower()  <span class="c">// 'v lang'</span>
+s.split(<span class="s">' '</span>)         <span class="c">// ['V','Lang']</span>
+s.contains(<span class="s">'Lang'</span>)    <span class="c">// true</span></code></pre>
+    <div class="warn">重点！字符串判空规范：用 <code>s == ''</code> 表示空，用 <code>s != ''</code> 表示非空。<b>不要写</b> <code>s.len == 0</code> / <code>s.len > 0</code>，否则 <code>v vet</code> 报 warning。</div>
+   </div>
+   <div>
+    <pre><code><span class="c">// 结构体</span>
+<span class="k">struct</span> <span class="t">User</span> {
+    id   <span class="t">int</span>
+    name <span class="t">string</span>
+    age  <span class="t">int</span> = <span class="n">18</span>   <span class="c">// 默认字段值</span>
+}
+
+u := <span class="t">User</span>{ id: <span class="n">1</span>, name: <span class="s">'Bob'</span> }
+println(u.name)</code></pre>
+    <div class="tip">经验：结构体字段可设默认值；字面量用字段名赋值更清晰。结构体默认不可变，需要改内部状态用 <code>mut</code> 字段或方法。</div>
+   </div>
+  </div>` },
+
+/* 9 方法 */
+{ kicker:"METHODS", title:"方法与接收者",
+  html:`<div class="grid g2">
+   <div>
+    <pre><code><span class="c">// 值接收者（只读）</span>
+<span class="k">struct</span> <span class="t">Vec</span> { x <span class="t">f64</span>; y <span class="t">f64</span> }
+<span class="k">fn</span> (<span class="t">v</span> <span class="t">Vec</span>) <span class="f">len</span>() <span class="t">f64</span> {
+    <span class="k">return</span> (v.x*v.x + v.y*v.y).sqrt()
+}
+
+<span class="c">// 指针接收者（可修改）</span>
+<span class="k">fn</span> (<span class="k">mut</span> v <span class="t">Vec</span>) <span class="f">scale</span>(k <span class="t">f64</span>) {
+    v.x *= k
+    v.y *= k
+}</code></pre>
+    <div class="tip">经验：小于 ~50 字节的结构体优先用值接收者（拷贝成本低）；需要修改自身状态用 <code>mut</code> 指针接收者。</div>
+   </div>
+   <div>
+    <pre><code>v := <span class="t">Vec</span>{ x: <span class="n">3</span>, y: <span class="n">4</span> }
+println(v.len())  <span class="c">// 5</span>
+v.scale(<span class="n">2</span>)
+println(v.x)      <span class="c">// 6</span></code></pre>
+    <div class="card" style="margin-top:14px"><h3>可见性（visibility）</h3>
+     <ul>
+      <li>函数 / 类型：首字母<b>大写</b> = public，<b>小写</b> = private</li>
+      <li>结构体字段：用 <code class="tw">pub:</code> / <code class="tw">pub mut:</code> / <code class="tw">mut:</code> 分区声明</li>
+      <li>public 函数必须写文档注释 <code>//</code>，否则 <code>v vet</code> 警告</li>
+     </ul>
+     <pre><code><span class="k">struct</span> <span class="t">User</span>[<span class="t">T</span>] {
+    id <span class="t">int</span>        <span class="c">// 默认 private（仅本模块）</span>
+<span class="k">pub:</span>
+    prive <span class="t">T</span>        <span class="c">// public（跨模块可读）</span>
+<span class="k">pub mut:</span>
+    note <span class="t">string</span>    <span class="c">// public 且模块内可改</span>
+}</code></pre>
+    </div>
+   </div>
+  </div>` },
+
+/* 9b 运算符重载 */
+{ kicker:"OPERATORS", title:"运算符重载（原生支持）",
+  html:`<div class="grid g2">
+   <div>
+    <pre><code><span class="c">// 为自定义类型重载四则运算与比较</span>
+<span class="k">struct</span> <span class="t">Vec</span> { x <span class="t">f64</span>; y <span class="t">f64</span> }
+
+<span class="c">// 加法：方法名固定为 +</span>
+<span class="k">fn</span> (<span class="t">Vec</span>) <span class="f">+</span>(o <span class="t">Vec</span>) <span class="t">Vec</span> {
+    <span class="k">return</span> <span class="t">Vec</span>{ x: x + o.x, y: y + o.y }
+}
+<span class="c">// 乘法、减法、除法、取模同理：* - / %</span>
+<span class="k">fn</span> (<span class="t">Vec</span>) <span class="f">*</span>(k <span class="t">f64</span>) <span class="t">Vec</span> { <span class="k">return</span> <span class="t">Vec</span>{ x: x*k, y: y*k } }</code></pre>
+   </div>
+   <div>
+    <pre><code><span class="c">// 比较：方法名固定为 == 和 &lt; 等</span>
+<span class="k">fn</span> (<span class="t">Vec</span>) <span class="f">==</span>(o <span class="t">Vec</span>) <span class="t">bool</span> {
+    <span class="k">return</span> x == o.x && y == o.y
+}
+<span class="k">fn</span> (<span class="t">Vec</span>) <span class="f">&lt;</span>(o <span class="t">Vec</span>) <span class="t">bool</span> {
+    <span class="k">return</span> x*x + y*y &lt; o.x*o.x + o.y*o.y
+}
+
+a := <span class="t">Vec</span>{<span class="n">1</span>,<span class="n">2</span>} + <span class="t">Vec</span>{<span class="n">3</span>,<span class="n">4</span>}  <span class="c">// Vec{4,6}</span>
+b := a * <span class="n">2</span>
+println(a == b)                <span class="c">// false</span></code></pre>
+    <div class="tip">经验：重载方法名只能是固定符号（+ - * / % == != &lt; &gt; &lt;= &gt;=）。定义 <code>==</code> 后，V 会自动为你推导出 <code>!=</code>，无需重复写。</div>
+   </div>
+  </div>` },
+
+/* 10 接口 */
+{ kicker:"INTERFACE", title:"接口（鸭子类型）",
+  html:`<div class="grid g2">
+   <div>
+    <pre><code><span class="c">// 接口只声明方法，不提供实现</span>
+<span class="k">interface</span> <span class="t">Animal</span> {
+    speak() <span class="t">string</span>
+}
+
+<span class="k">struct</span> <span class="t">Dog</span> {}
+<span class="k">struct</span> <span class="t">Cat</span> {}
+<span class="k">fn</span> (<span class="t">Dog</span>) <span class="f">speak</span>() <span class="t">string</span> { <span class="k">return</span> <span class="s">'Woof'</span> }
+<span class="k">fn</span> (<span class="t">Cat</span>) <span class="f">speak</span>() <span class="t">string</span> { <span class="k">return</span> <span class="s">'Meow'</span> }</code></pre>
+   </div>
+   <div>
+    <pre><code><span class="c">// 任何实现了 speak() 的类型</span>
+<span class="c">// 都自动满足 Animal</span>
+<span class="k">fn</span> <span class="f">say</span>(a <span class="t">Animal</span>) {
+    println(a.speak())
+}
+say(<span class="t">Dog</span>{})
+say(<span class="t">Cat</span>{})</code></pre>
+    <div class="tip">经验：V 接口是隐式实现的（无需 implements）。这让组合更灵活，但要注意方法签名必须完全一致。</div>
+   </div>
+  </div>` },
+
+/* 11 枚举 */
+{ kicker:"ENUM", title:"枚举",
+  html:`<div class="grid g2">
+   <div>
+    <pre><code><span class="k">enum</span> <span class="t">Color</span> {
+    red
+    green
+    blue
+}
+
+<span class="k">enum</span> <span class="t">Status</span> {
+    pending
+    active
+    banned
+}</code></pre>
+   </div>
+   <div>
+    <pre><code><span class="c">// 配合 match 使用最安全</span>
+<span class="k">fn</span> <span class="f">label</span>(s <span class="t">Status</span>) <span class="t">string</span> {
+    <span class="k">return</span> <span class="k">match</span> s {
+        .pending { <span class="s">'待审核'</span> }
+        .active  { <span class="s">'正常'</span> }
+        .banned  { <span class="s">'已封禁'</span> }
+    }
+}</code></pre>
+    <div class="tip">经验：枚举成员用 <code>.name</code> 引用。用 match 穷尽所有分支，编译器会帮你检查漏掉的情况。</div>
+   </div>
+  </div>` },
+
+/* 12 错误处理 */
+{ kicker:"ERRORS", title:"错误处理：Option / Result",
+  html:`<div class="grid g2">
+   <div>
+    <pre><code><span class="c">// ? 自动向上传播错误</span>
+<span class="k">fn</span> <span class="f">read</span>() !<span class="t">string</span> {
+    <span class="k">return</span> os.read_file(<span class="s">'a.txt'</span>) <span class="k">?</span>
+}
+
+<span class="c">// ! 断言「不会出错」</span>
+content := os.read_file(<span class="s">'a.txt'</span>) <span class="k">!</span>
+
+<span class="c">// or {} 提供兜底</span>
+v := m[key] <span class="k">or</span> { <span class="n">0</span> }</code></pre>
+    <div class="card" style="margin-top:12px"><h3>Option</h3>
+     <pre><code><span class="k">fn</span> <span class="f">find</span>() ?<span class="t">int</span> {
+    <span class="k">return</span> <span class="k">none</span>  <span class="c">// 或 return 42</span>
+}</code></pre></div>
+   </div>
+   <div>
+    <pre><code><span class="c">// 显式捕获错误</span>
+<span class="k">match</span> os.read_file(<span class="s">'a.txt'</span>) {
+    <span class="k">err</span> => println(<span class="s">'err: \${err}'</span>)
+    s   => println(s)
+}
+
+<span class="c">// 定义自己的错误</span>
+<span class="k">struct</span> <span class="t">MyErr</span> { msg <span class="t">string</span> }
+<span class="k">fn</span> <span class="f">f</span>() !<span class="t">int</span> {
+    <span class="k">return</span> <span class="t">IError</span>(<span class="t">MyErr</span>{ msg: <span class="s">'boom'</span> })
+}</code></pre>
+    <div class="warn">避坑：V 没有 try/catch 异常。错误是值，必须处理（? 传播、! 断言、or{} 兜底、match 捕获）。这是「安全优先」的体现。</div>
+   </div>
+  </div>` },
+
+/* 13 泛型 */
+{ kicker:"GENERICS", title:"泛型",
+  html:`<div class="grid g2">
+   <div>
+    <pre><code><span class="c">// 泛型函数</span>
+<span class="k">fn</span> <span class="f">first</span>[<span class="t">T</span>](arr []<span class="t">T</span>) ?<span class="t">T</span> {
+    <span class="k">if</span> arr.len == <span class="n">0</span> { <span class="k">return</span> <span class="k">none</span> }
+    <span class="k">return</span> arr[<span class="n">0</span>]
+}</code></pre>
+   </div>
+   <div>
+    <pre><code><span class="c">// 泛型结构体</span>
+<span class="k">struct</span> <span class="t">Box</span>[<span class="t">T</span>] {
+    val <span class="t">T</span>
+}
+b := <span class="t">Box</span>[<span class="t">int</span>]{ val: <span class="n">10</span> }
+
+<span class="c">// 类型约束</span>
+<span class="k">fn</span> <span class="f">max</span>[<span class="t">T</span> <span class="k">int</span> | <span class="t">f64</span>](a <span class="t">T</span>, b <span class="t">T</span>) <span class="t">T</span> {
+    <span class="k">return</span> <span class="k">if</span> a > b { a } <span class="k">else</span> { b }
+}</code></pre>
+    <div class="tip">经验：泛型让容器与算法复用类型安全。约束用 <code>T A | B</code> 语法，比 Go 的 interface 约束更直观。</div>
+   </div>
+  </div>` },
+
+/* 14 并发 */
+{ kicker:"CONCURRENCY", title:"并发：goroutines 与通道",
+  html:`<div class="grid g2">
+   <div>
+    <pre><code><span class="c">// go 启动轻量协程</span>
+<span class="k">go</span> <span class="f">fn</span>() {
+    println(<span class="s">'async'</span>)
+}()
+
+<span class="c">// 通道传递数据</span>
+ch := <span class="t">chan</span> <span class="t">int</span>{ cap: <span class="n">1</span> }
+<span class="k">go</span> <span class="f">fn</span>() { ch <span class="k">&lt;-</span> <span class="n">42</span> }()
+val := <span class="k">&lt;-</span>ch
+println(val)</code></pre>
+   </div>
+   <div>
+    <pre><code><span class="c">// select 多路等待</span>
+<span class="k">select</span> {
+    v := <span class="k">&lt;-</span>ch1 { println(v) }
+    v := <span class="k">&lt;-</span>ch2 { println(v) }
+    <span class="n">100</span>us { println(<span class="s">'timeout'</span>) }
+}</code></pre>
+    <div class="warn">避坑：V 的并发模型借鉴 Go，但仍在演进。共享内存请用通道或加锁；<code>v run</code> 默认可能单线程，生产请关注编译选项。</div>
+   </div>
+  </div>` },
+
+/* 15 模块与 JSON */
+{ kicker:"MODULES", title:"模块、导入与 JSON",
+  html:`<div class="grid g2">
+   <div>
+    <pre><code><span class="c">// 模块：每个目录一个模块</span>
+<span class="c">// mypkg/util.v 首行：</span>
+module mypkg
+<span class="k">pub fn</span> <span class="f">add</span>(a, b <span class="t">int</span>) <span class="t">int</span> { <span class="k">return</span> a + b }
+
+<span class="c">// 使用</span>
+<span class="k">import</span> mypkg
+mypkg.add(<span class="n">1</span>, <span class="n">2</span>)</code></pre>
+   </div>
+   <div>
+    <pre><code><span class="c">// JSON 序列化</span>
+<span class="k">import</span> json
+<span class="k">struct</span> <span class="t">Person</span> {
+    name <span class="t">string</span>
+    age  <span class="t">int</span>
+}
+s := json.encode(<span class="t">Person</span>{ name: <span class="s">'V'</span>, age: <span class="n">1</span> })
+p := json.decode(<span class="t">Person</span>, s) <span class="k">or</span> { <span class="t">Person</span>{} }</code></pre>
+    <div class="tip">经验：JSON 字段默认用结构体字段名；可用 <code>[json: 'alias']</code> 指定别名。decode 返回 Result，记得 <code>or {}</code>。</div>
+   </div>
+  </div>` },
+
+/* 16 数据库 ORM */
+{ kicker:"DATABASE", title:"数据库与 ORM（SQLite）",
+  html:`<div class="grid g2">
+   <div>
+    <pre><code><span class="k">import</span> db.sqlite
+
+<span class="k">struct</span> <span class="t">Post</span> {
+    id    <span class="t">int</span>    [primary; sql: serial]
+    title <span class="t">string</span>
+    body  <span class="t">string</span>
+}
+
+<span class="k">fn</span> <span class="f">main</span>() ! {
+    orm := sqlite.open(<span class="s">'blog.db'</span>)!
+    <span class="k">defer</span> { orm.close() }
+    sql orm { <span class="k">create table</span> <span class="t">Post</span> }
+}</code></pre>
+   </div>
+   <div>
+    <pre><code><span class="c">// 插入</span>
+p := <span class="t">Post</span>{ title: <span class="s">'Hi'</span>, body: <span class="s">'...'</span> }
+sql orm { <span class="k">insert</span> p <span class="k">into</span> <span class="t">Post</span> }
+
+<span class="c">// 查询</span>
+posts := sql orm {
+    <span class="k">select</span> <span class="k">from</span> <span class="t">Post</span> <span class="k">where</span> id == <span class="n">1</span>
+}
+<span class="c">// 或集合</span>
+all := sql orm { <span class="k">select</span> <span class="k">from</span> <span class="t">Post</span> }</code></pre>
+    <div class="warn">避坑见下页：ORM 的 insert 与 WHERE 有多个真实项目踩过的坑。</div>
+   </div>
+  </div>` },
+
+/* 17 ORM 避坑 */
+{ kicker:"GOTCHA", title:"ORM 避坑经验（真实项目）",
+  html:`<div class="grid g2">
+   <div>
+    <div class="warn"><b>坑 1：insert 不能内联调用函数</b><br>
+    不能在 <code>values()</code> 里直接调用 <code>hash_password()</code>、<code>now_str()</code>。<br>
+    必须先构造结构体变量，再 <code>insert var into Table</code>。</div>
+    <pre><code><span class="c">// ✗ 错误</span>
+sql db { <span class="k">insert</span> <span class="k">into</span> <span class="t">User</span> (pw) <span class="k">values</span>(hash_pw(x)) }
+
+<span class="c">// ✓ 正确</span>
+u := <span class="t">User</span>{ pw: hash_pw(x) }
+sql db { <span class="k">insert</span> u <span class="k">into</span> <span class="t">User</span> }</code></pre>
+   </div>
+   <div>
+    <div class="warn"><b>坑 2：WHERE 字段名与参数冲突</b><br>
+    <code>where id == id</code> 会因字段与参数同名永远为真。加 <code>limit 1</code> 或用 <code>$id</code> 区分。</div>
+    <pre><code><span class="c">// ✗ 危险</span>
+<span class="k">select</span> <span class="k">from</span> <span class="t">User</span> <span class="k">where</span> id == id
+
+<span class="c">// ✓ 安全</span>
+<span class="k">select</span> <span class="k">from</span> <span class="t">User</span> <span class="k">where</span> id == <span class="n">$1</span> <span class="k">limit</span> <span class="n">1</span>
+<span class="c">// 或重命名参数 uid</span></code></pre>
+    <div class="tip">经验：<code>insert var into Table</code> 是完整语法，不能省略 <code>into Table</code>。</div>
+   </div>
+  </div>` },
+
+/* 18 vet 规范 */
+{ kicker:"LINT", title:"vet 检查规范（必须过）",
+  html:`<div class="grid g2">
+   <div>
+    <div class="warn"><b>1. 字符串判空</b><br>
+    用 <code>s == ''</code> 判空，<code>s != ''</code> 判非空。<br>
+    <b>不要</b>用 <code>s.len == 0</code> / <code>s.len > 0</code>（vet warning）。</div>
+    <pre><code><span class="c">// ✓</span>
+<span class="k">if</span> s == <span class="s">''</span> { }
+<span class="k">if</span> s != <span class="s">''</span> { }
+<span class="c">// ✗ 触发 vet</span>
+<span class="k">if</span> s.len == <span class="n">0</span> { }</code></pre>
+   </div>
+   <div>
+    <div class="warn"><b>2. 所有 pub 函数需文档注释</b><br>
+    以 <code>//</code> 开头的注释，否则 vet 报 warning。</div>
+    <pre><code><span class="c">// ✓ 有文档注释</span>
+<span class="c">// add 返回两数之和</span>
+<span class="k">pub fn</span> <span class="f">add</span>(a, b <span class="t">int</span>) <span class="t">int</span> { <span class="k">return</span> a + b }
+
+<span class="c">// ✗ 无注释 → vet warning</span>
+<span class="k">pub fn</span> <span class="f">sub</span>(a, b <span class="t">int</span>) <span class="t">int</span> { <span class="k">return</span> a - b }</code></pre>
+    <div class="tip">经验：CI 里跑 <code>v vet .</code>，把 warning 当错误对待，能规避大量低级 bug。</div>
+   </div>
+  </div>` },
+
+/* 19 Web 服务器（官方 veb 示例） */
+{ kicker:"WEB", title:"Web 开发：veb 框架（官方示例）",
+  html:`<div class="grid g2">
+   <div>
+    <pre><code><span class="k">module</span> main
+<span class="k">import</span> veb
+<span class="k">import</span> rand
+
+<span class="k">const</span> port = <span class="n">3003</span>
+
+<span class="k">struct</span> <span class="t">State</span> {
+<span class="k">mut:</span>
+    cnt <span class="t">int</span>
+}
+<span class="k">pub struct</span> <span class="t">App</span> {
+<span class="k">mut:</span>
+    state <span class="t">shared</span> <span class="t">State</span>
+}
+<span class="k">struct</span> <span class="t">Context</span> {
+    veb.Context
+}</code></pre>
+   </div>
+   <div>
+    <pre><code><span class="k">pub fn</span> (<span class="k">mut</span> app <span class="t">App</span>) <span class="f">index</span>() <span class="t">veb</span>.Result {
+    <span class="k">mut</span> c := <span class="n">0</span>
+    <span class="k">lock</span> app.state {
+        app.state.cnt++
+        c = app.state.cnt
+    }
+    hello := <span class="s">'req #\${c}'</span>
+    <span class="k">return</span> <span class="k">$</span>veb.html()
+}
+
+<span class="k">@</span>[<span class="t">post</span>]
+<span class="k">pub fn</span> (<span class="k">mut</span> app <span class="t">App</span>) <span class="f">post</span>(<span class="k">mut</span> ctx <span class="t">Context</span>) <span class="t">veb</span>.Result {
+    <span class="k">return</span> ctx.text(<span class="s">'body: \${ctx.req.data}'</span>)
+}</code></pre>
+    <div class="tip">经验：veb 是 V 官方 Web 框架。App 持有 <code>shared</code> 状态，用 <code>lock</code> 保护并发；路由用 <code>@[...]</code> 注解（<code>@['/users/:user']</code> 路径参数、<code>@[post]</code> 方法）；<code>$veb.html()</code> 渲染同名模板。</div>
+   </div>
+  </div>` },
+
+/* 19b veb 启动与运行 */
+{ kicker:"WEB RUN", title:"veb：路由注解与启动",
+  html:`<div class="grid g2">
+   <div>
+    <pre><code><span class="c">// 路径参数 + JSON 响应</span>
+<span class="k">@</span>[<span class="s">'/users/:user'</span>]
+<span class="k">pub fn</span> (<span class="k">mut</span> app <span class="t">App</span>) <span class="f">user_endpoint</span>(<span class="k">mut</span> ctx <span class="t">Context</span>, user <span class="t">string</span>) <span class="t">veb</span>.Result {
+    id := rand.intn(<span class="n">100</span>) <span class="k">or</span> { <span class="n">0</span> }
+    <span class="k">return</span> ctx.json({ user: id })
+}</code></pre>
+    <div class="card" style="margin-top:12px"><h3>注解速查</h3>
+     <ul>
+      <li><span class="tw">@['/p/:x']</span> 路径参数，函数尾参接收</li>
+      <li><span class="tw">@[get]/@[post]</span> 限定 HTTP 方法</li>
+      <li><span class="tw">ctx.json(...)</span> 返回 JSON</li>
+      <li><span class="tw">ctx.text(...)</span> 返回纯文本</li>
+     </ul></div>
+   </div>
+   <div>
+    <pre><code><span class="c">// 启动（两种写法）</span>
+<span class="c">// 简洁版：直接传端口</span>
+<span class="k">mut</span> app := &amp;<span class="t">App</span>{}
+veb.run[<span class="t">App</span>, <span class="t">Context</span>](<span class="k">mut</span> app, <span class="n">3003</span>) <span class="k">or</span> { panic(err) }
+
+<span class="c">// 配置版：run_at 支持更多参数</span>
+veb.run_at[<span class="t">App</span>, <span class="t">Context</span>](<span class="k">mut</span> app,
+    port: port,
+    family: .ip,
+    timeout_in_seconds: <span class="n">2</span>) <span class="k">or</span> { panic(err) }</code></pre>
+    <div class="warn">避坑：用 veb 而非旧版 <code>httpserver</code>；启动走泛型方括号 <code>veb.run[App, Context]</code> 或 <code>veb.run_at[App, Context]</code>。并发写状态务必 <code>lock</code>。</div>
+   </div>
+  </div>` },
+
+/* 20 模板 */
+{ kicker:"TEMPLATES", title:"模板系统（V 自带）",
+  html:`<div class="grid g2">
+   <div>
+    <pre><code><span class="c">// index.html.v 模板</span>
+<span class="k">@</span>for post <span class="k">in</span> posts {
+  &lt;h2&gt;\${post.title}&lt;/h2&gt;
+  &lt;p&gt;\${post.body}&lt;/p&gt;
+<span class="k">@</span>}
+
+<span class="c">// 渲染</span>
+<span class="k">import</span> templates
+out := templates.render(<span class="s">'index.html.v'</span>, posts)</code></pre>
+   </div>
+   <div>
+    <pre><code><span class="c">// 条件与包含</span>
+<span class="k">@</span><span class="k">if</span> logged_in {
+  &lt;a&gt;退出&lt;/a&gt;
+<span class="k">@</span><span class="k">else</span> {
+  &lt;a&gt;登录&lt;/a&gt;
+<span class="k">@</span>}
+
+<span class="k">@</span>include <span class="s">'footer.html.v'</span></code></pre>
+    <div class="tip">经验：V 模板语法接近 HTML，用 <code>@</code> 引入控制语句，<code>\${}</code> 插值。无需 React/Vue 即可做服务端渲染页面。</div>
+   </div>
+  </div>` },
+
+/* 21 项目结构 */
+{ kicker:"ARCHITECTURE", title:"实战项目结构（博客为例）",
+  html:`<pre><code>vblog/
+├── main.v              <span class="c"># 入口：启动 HTTP + 模板</span>
+├── models/
+│   ├── user.v          <span class="c"># [sql] User 结构体</span>
+│   └── post.v          <span class="c"># [sql] Post 结构体</span>
+├── db/
+│   └── conn.v          <span class="c"># sqlite 连接与迁移</span>
+├── handlers/
+│   ├── auth.v          <span class="c"># 登录 / 注册</span>
+│   └── post.v          <span class="c"># 文章 CRUD</span>
+├── views/
+│   ├── layout.html.v
+│   ├── index.html.v
+│   └── post.html.v
+└── public/             <span class="c"># 静态资源</span></code></pre>
+  <div class="grid g3" style="margin-top:14px">
+    <div class="card"><h3>分层</h3><ul><li>models：纯数据 + ORM 注解</li><li>handlers：路由与业务逻辑</li><li>views：模板</li></ul></div>
+    <div class="card"><h3>约定</h3><ul><li>public 函数带文档注释</li><li>资源用 defer 关闭</li><li>统一错误处理 !</li></ul></div>
+    <div class="card"><h3>构建</h3><ul><li><code>v run main.v</code></li><li><code>v -o bin/vblog main.v</code></li><li><code>v vet .</code></li></ul></div>
+  </div>` },
+
+/* 22 总结 */
+{ kicker:"SUMMARY", title:"总结与学习资源",
+  html:`<div class="grid g2">
+   <div>
+    <div class="card"><h3>核心要点回顾</h3>
+     <ul>
+      <li>简单优先：少关键字、无异常、无继承</li>
+      <li>安全优先：错误处理是值；vet 强制规范</li>
+      <li>零依赖：单一二进制 + 内置 ORM / HTTP / 模板</li>
+      <li>避坑：insert 走变量、WHERE 防冲突、字符串判空用 <code>== ''</code></li>
+     </ul></div>
+    <div class="card" style="margin-top:14px"><h3>学习资源</h3>
+     <ul>
+      <li>官网：vlang.io</li>
+      <li>源码与示例：github.com/vlang/v</li>
+      <li>官方文档：doc/docs.md</li>
+      <li>练习：写一个小博客 vblog</li>
+     </ul></div>
+   </div>
+   <div class="center">
+    <div class="big">开始写 V 吧！</div>
+    <p class="lead" style="text-align:center;margin-top:14px">记住三条铁律：<b>错误处理要显式</b>、<b>pub 要注释</b>、<b>字符串判空用 == ''</b></p>
+    <div class="taglist" style="justify-content:center;margin-top:10px">
+      <span class="pill acc">确定性</span><span class="pill grn">高性能</span><span class="pill ylw">易部署</span><span class="pill red">类型安全</span>
+    </div>
+   </div>
+  </div>` },
+];
+
+/* ============ 渲染 ============ */
+const deck = document.getElementById('deck');
+const dots = document.getElementById('dots');
+const idxGrid = document.getElementById('idxgrid');
+let cur = 0;
+const N = SLIDES.length;
+
+SLIDES.forEach((s, i) => {
+  const el = document.createElement('section');
+  el.className = 'slide';
+  el.innerHTML = `<div class="kicker">${s.kicker || ''}</div><h1>${s.title}</h1>${s.html}`;
+  deck.appendChild(el);
+
+  const d = document.createElement('div');
+  d.className = 'd';
+  d.title = s.title;
+  d.onclick = () => go(i);
+  dots.appendChild(d);
+
+  const a = document.createElement('a');
+  a.href = '#';
+  a.innerHTML = `<span class="i">${String(i+1).padStart(2,'0')}</span><span class="tt">${s.title}</span>`;
+  a.onclick = (e) => { e.preventDefault(); go(i); toggleIndex(false); };
+  idxGrid.appendChild(a);
+});
+
+const slides = [...document.querySelectorAll('.slide')];
+
+/* ============ 随机切换动画 ============ */
+const EASES = [
+  'cubic-bezier(.22,.9,.3,1)',
+  'cubic-bezier(.66,0,.34,1)',
+  'cubic-bezier(.16,1,.3,1)',
+  'cubic-bezier(.85,0,.15,1)',
+  'cubic-bezier(.34,1.56,.64,1)',
+];
+const ROT = ['' , 'rotateY(8deg)', 'rotateX(6deg)', 'scale(.96)'];
+function rand(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+
+function go(target){
+  target = Math.max(0, Math.min(N-1, target));
+  const dir = target > cur ? 1 : -1;
+  const ease = rand(EASES);
+  const rot = rand(ROT);
+  // 离场
+  const old = slides[cur];
+  old.style.transition = `transform .5s ${ease}, opacity .4s ease`;
+  old.style.transform = `translateX(${-dir*60}px) ${rot}`;
+  old.style.opacity = '0';
+  old.classList.remove('active');
+  // 入场
+  cur = target;
+  const nv = slides[cur];
+  nv.style.transition = `transform .62s ${ease}, opacity .5s ease`;
+  nv.style.transform = `translateX(${dir*60}px) ${rot}`;
+  nv.style.opacity = '0';
+  // 强制重排后归位
+  void nv.offsetWidth;
+  requestAnimationFrame(() => {
+    nv.classList.add('active');
+    nv.style.transform = 'translateX(0)';
+    nv.style.opacity = '1';
+  });
+  updateUI();
+}
+function updateUI(){
+  document.getElementById('pg').textContent = `${cur+1} / ${N}`;
+  document.getElementById('prev').disabled = cur===0;
+  document.getElementById('next').disabled = cur===N-1;
+  dots.forEach((d,i)=> d.classList.toggle('on', i===cur));
+}
+
+/* ============ 索引开关 ============ */
+function toggleIndex(force){
+  const idx = document.getElementById('index');
+  const open = force!==undefined ? force : !idx.classList.contains('open');
+  idx.classList.toggle('open', open);
+}
+
+/* ============ 事件 ============ */
+document.getElementById('next').onclick = () => go(cur+1);
+document.getElementById('prev').onclick = () => go(cur-1);
+document.getElementById('btnIdx').onclick = () => toggleIndex();
+document.getElementById('btnRand').onclick = () => go(Math.floor(Math.random()*N));
+document.getElementById('btnFull').onclick = () => {
+  if(!document.fullscreenElement) document.documentElement.requestFullscreen();
+  else document.exitFullscreen();
+};
+document.addEventListener('keydown', (e)=>{
+  if(e.key==='ArrowRight'||e.key===' ') { e.preventDefault(); go(cur+1); }
+  else if(e.key==='ArrowLeft') { e.preventDefault(); go(cur-1); }
+  else if(e.key==='i'||e.key==='I') toggleIndex();
+  else if(e.key==='r'||e.key==='R') go(Math.floor(Math.random()*N));
+  else if(e.key==='f'||e.key==='F') document.getElementById('btnFull').click();
+  else if(e.key==='Escape') toggleIndex(false);
+});
+document.getElementById('index').addEventListener('click',(e)=>{ if(e.target.id==='index') toggleIndex(false); });
+
+/* ============ 时钟 ============ */
+function tick(){
+  const d = new Date();
+  const p = n => String(n).padStart(2,'0');
+  document.getElementById('clock').textContent =
+    `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+}
+setInterval(tick, 1000); tick();
+
+/* ============ 启动 ============ */
+go(0);
+</script>
+</body>
+</html>
