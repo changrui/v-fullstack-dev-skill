@@ -206,14 +206,30 @@ fn main() {
 	}
 
 	match cfg.command {
-		'init' { cmd_init(cfg) or {
-			print_error('init: ${err}')exit(1)} }
-		'run' { cmd_run(cfg) or {
-			print_error('run: ${err}')exit(1)} }
-		'status' { cmd_status(cfg) or {
-			print_error('status: ${err}')exit(1)} }
-		'export' { cmd_export(cfg) or {
-			print_error('export: ${err}')exit(1)} }
+		'init' {
+			cmd_init(cfg) or {
+				print_error('init: ${err}')
+				exit(1)
+			}
+		}
+		'run' {
+			cmd_run(cfg) or {
+				print_error('run: ${err}')
+				exit(1)
+			}
+		}
+		'status' {
+			cmd_status(cfg) or {
+				print_error('status: ${err}')
+				exit(1)
+			}
+		}
+		'export' {
+			cmd_export(cfg) or {
+				print_error('export: ${err}')
+				exit(1)
+			}
+		}
 		else {
 			print_error('Unknown command: ${cfg.command}')
 			print_usage()

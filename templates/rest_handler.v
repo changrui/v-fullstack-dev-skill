@@ -475,14 +475,14 @@ pub fn (mut app App) batch_create(mut ctx veb.Context) veb.Result {
 
 // options_handler OPTIONS 端点处理，支持 CORS 预检请求
 pub fn (mut app App) options_handler(mut ctx veb.Context) veb.Result {
-		if ctx.req.method == .options {
-			if app.config.allow_cors {
-				ctx.res.header.add('Access-Control-Allow-Origin', app.config.allowed_origin)
-				ctx.res.header.add('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
-				ctx.res.header.add('Access-Control-Allow-Headers', 'Content-Type, Authorization')
-				ctx.res.header.add('Access-Control-Max-Age', '86400') // 24小时缓存
-			}
-			return ctx.text('', status: 204)
+	if ctx.req.method == .options {
+		if app.config.allow_cors {
+			ctx.res.header.add('Access-Control-Allow-Origin', app.config.allowed_origin)
+			ctx.res.header.add('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+			ctx.res.header.add('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+			ctx.res.header.add('Access-Control-Max-Age', '86400') // 24小时缓存
 		}
-		return respond_error(ctx, 405, 'method not allowed', none)
+		return ctx.text('', status: 204)
 	}
+	return respond_error(ctx, 405, 'method not allowed', none)
+}

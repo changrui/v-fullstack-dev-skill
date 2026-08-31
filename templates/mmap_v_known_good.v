@@ -28,9 +28,12 @@ fn C.memcpy(dst voidptr, src voidptr, n u64) voidptr
 
 const prot_read = 1 // PROT_READ
 
+
 const map_private = 0x02 // MAP_PRIVATE
 
+
 const madv_willneed = 3 // MADV_WILLNEED
+
 
 const o_rdonly = 0 // O_RDONLY
 
