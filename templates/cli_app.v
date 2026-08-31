@@ -33,7 +33,7 @@ pub mut:
 }
 
 // 从环境变量加载默认配置
-// config_from_env: 从环境变量读取 CLI 配置并返回 Config
+// config_from_env 从环境变量读取 CLI 配置并返回 Config
 pub fn config_from_env() Config {
 	return Config{
 		verbose: os.getenv('VERBOSE', 'false') == 'true'
@@ -45,7 +45,7 @@ pub fn config_from_env() Config {
 }
 
 // 从命令行解析
-// parse_args: 解析命令行参数并填充 Config
+// parse_args 解析命令行参数并填充 Config
 pub fn (mut c Config) parse_args() ! {
 	if os.args.len < 2 {
 		return error('no command provided')
@@ -87,7 +87,7 @@ pub fn (mut c Config) parse_args() ! {
 	}
 }
 
-// print_usage: 打印 CLI 使用帮助
+// print_usage 打印 CLI 使用帮助
 pub fn print_usage() {
 	println('Usage: ${os.executable().base()} <command> [options]')
 	println('')
@@ -112,22 +112,22 @@ pub fn print_usage() {
 // ============================================================
 // 输出帮助函数
 // ============================================================
-// print_success: 打印成功消息（绿色）
+// print_success 打印成功消息（绿色）
 pub fn print_success(msg string) {
 	println(term.bold(term.green('✓ ')) + msg)
 }
 
-// print_error: 打印错误消息（红色）
+// print_error 打印错误消息（红色）
 pub fn print_error(msg string) {
 	eprintln(term.bold(term.red('✗ ')) + msg)
 }
 
-// print_info: 打印信息消息（蓝色）
+// print_info 打印信息消息（蓝色）
 pub fn print_info(msg string) {
 	println(term.blue('ℹ ') + msg)
 }
 
-// print_warn: 打印警告消息（黄色）
+// print_warn 打印警告消息（黄色）
 pub fn print_warn(msg string) {
 	println(term.bold(term.yellow('⚠ ')) + msg)
 }
@@ -135,7 +135,7 @@ pub fn print_warn(msg string) {
 // ============================================================
 // 子命令处理
 // ============================================================
-// cmd_init: 初始化命令 — 执行一次性项目初始化动作
+// cmd_init 初始化命令 — 执行一次性项目初始化动作
 pub fn cmd_init(cfg Config) ! {
 	print_info('Initializing...')
 
@@ -154,7 +154,7 @@ pub fn cmd_init(cfg Config) ! {
 	print_success('Initialized at ${os.wd_at_startup}')
 }
 
-// cmd_run: 运行命令 — 启动主服务或守护进程
+// cmd_run 运行命令 — 启动主服务或守护进程
 pub fn cmd_run(cfg Config) ! {
 	print_info('Running on port ${cfg.port}...')
 	print_info('Database: ${cfg.db_path}')
@@ -162,7 +162,7 @@ pub fn cmd_run(cfg Config) ! {
 	// 启动 veb server 等...
 }
 
-// cmd_status: 状态命令 — 显示运行时/服务状态
+// cmd_status 状态命令 — 显示运行时/服务状态
 pub fn cmd_status(cfg Config) ! {
 	mut status := map[string]string{}
 	status['cwd'] = os.wd_at_startup
@@ -180,7 +180,7 @@ pub fn cmd_status(cfg Config) ! {
 	}
 }
 
-// cmd_export: 导出命令 — 导出数据/报告等
+// cmd_export 导出命令 — 导出数据/报告等
 pub fn cmd_export(cfg Config) ! {
 	_ = cfg
 	// 导出数据到文件
