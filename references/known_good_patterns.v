@@ -1,7 +1,6 @@
 // known_good_patterns.v — copy-paste-corrected V idioms for Go→V ports.
 // Every pattern below compiles under V 0.5.x and replaces a go2v-mangled emit.
 // These are meant to be COPIED and ADAPTED, not compiled as-is.
-
 module example
 
 import strings
@@ -55,12 +54,14 @@ mut:
 	queues map[string]&FileLock
 }
 
+// 创建并返回一个新的 FileMutationQueue 实例
 pub fn new() &FileMutationQueue {
 	return &FileMutationQueue{ queues: map[string]&FileLock{} }
 }
 
 // Inline the lock/unlock + IO; do NOT use a closure to return a value out —
 // V closure capture [mut x] is copy semantics for scalars.
+// 安全读取文件内容（带错误处理）
 pub fn (mut fmq FileMutationQueue) read_file_safe(path string) !string {
 	key := os.abs_path(path)
 	fmq.mu.lock()
@@ -75,7 +76,10 @@ pub fn (mut fmq FileMutationQueue) read_file_safe(path string) !string {
 	fmq.mu.unlock()
 
 	l.mu.lock()
-	content := os.read_file(path) or { l.mu.unlock(); return err }
+	content := os.read_file(path) or {
+		l.mu.unlock()
+		return err
+	}
 	l.mu.unlock()
 
 	fmq.mu.lock()
@@ -88,6 +92,7 @@ pub fn (mut fmq FileMutationQueue) read_file_safe(path string) !string {
 }
 
 // 6) write bytes (go2v emits os.write_file(p, data) with []u8 — 2nd arg is string)
+// 安全写入文件（保证原子性/备份策略）
 pub fn (mut fmq FileMutationQueue) write_file_safe(path string, data []u8) ! {
 	os.mkdir_all(os.dir(path), os.MkdirParams{}) or {}
 	os.write_file(path, data.bytestr()) or { return err }

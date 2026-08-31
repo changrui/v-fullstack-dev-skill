@@ -13,7 +13,6 @@
 //   - tool_call_id 精确匹配
 //
 // 依赖: V 0.5.x, json2 (内置), net.http (内置)
-
 module main
 
 import json2
@@ -30,11 +29,12 @@ pub:
 	model    string
 }
 
+// default_config 返回默认 LLM 配置，从环境变量读取覆盖值
 pub fn default_config() LLMConfig {
 	return LLMConfig{
 		base_url: os.getenv('VCA_BASE_URL', 'https://openrouter.ai/api/v1')
-		api_key:  os.getenv('VCA_API_KEY', '')
-		model:    os.getenv('VCA_MODEL', 'openai/gpt-4o-mini')
+		api_key: os.getenv('VCA_API_KEY', '')
+		model: os.getenv('VCA_MODEL', 'openai/gpt-4o-mini')
 	}
 }
 
@@ -45,8 +45,8 @@ pub struct ChatMessage {
 pub mut:
 	role         string
 	content      string
-	tool_calls   json2.Any [json: 'tool_calls'; skip] // 按需添加
-	tool_call_id string  [json: 'tool_call_id'; skip]
+	tool_calls   json2.Any
+	tool_call_id string @[json: 'tool_call_id']
 }
 
 pub struct ToolFunction {
@@ -58,7 +58,7 @@ pub:
 
 pub struct ToolDef {
 pub:
-	ty       string       @[json: 'type'] // ⚠️ Bug 1 修复: @[json: 'type'] 防止序列化为 "ty"
+	ty       string @[json: 'type'] // ⚠️ Bug 1 修复: @[json: 'type'] 防止序列化为 "ty"
 	function ToolFunction
 }
 
@@ -68,13 +68,13 @@ pub:
 	messages    []ChatMessage
 	temperature f64
 	stream      bool @[json: 'stream']
-	tools       []ToolDef [skip; json: 'tools']
+	tools       []ToolDef @[skip]
 }
 
 pub struct Choice {
 pub:
-	index      int
-	message    ChatMessage
+	index         int
+	message       ChatMessage
 	finish_reason string
 }
 
@@ -93,59 +93,65 @@ pub:
 	last_err string
 }
 
+// new_agent 根据配置创建新的 Agent 实例
 pub fn new_agent(config LLMConfig) Agent {
-	return Agent{config: config, history: []ChatMessage{}}
+	return Agent{ config: config, history: []ChatMessage{} }
 }
 
 // 添加系统消息 (必须是 messages[0])
+// system 添加系统消息到会话历史
 pub fn (mut a Agent) system(msg string) {
-	a.history.prepend(ChatMessage{role: 'system', content: msg})
+	a.history.prepend(ChatMessage{ role: 'system', content: msg })
 }
 
 // 添加用户消息
+// user 添加用户消息到会话历史
 pub fn (mut a Agent) user(msg string) {
-	a.history << ChatMessage{role: 'user', content: msg}
+	a.history << ChatMessage{ role: 'user', content: msg }
 }
 
 // 添加助手消息
+// assistant 添加助手消息到会话历史
 pub fn (mut a Agent) assistant(msg string) {
-	a.history << ChatMessage{role: 'assistant', content: msg}
+	a.history << ChatMessage{ role: 'assistant', content: msg }
 }
 
 // ============================================================
 // Chat Completion 调用
 // ============================================================
+// chat 同步聊天 — 添加用户输入并发送请求，返回回复文本
 pub fn (mut a Agent) chat(user_input string) !string {
 	a.user(user_input)
 	return a.send()
 }
 
+// build_request 构建聊天请求的 JSON 字符串
 pub fn (a Agent) build_request() string {
 	req := ChatRequest{
-		model:       a.config.model
-		messages:    a.history
+		model: a.config.model
+		messages: a.history
 		temperature: 0.7
-		stream:      false
+		stream: false
 	}
 	return json2.encode[ChatRequest](req, json2.EncoderOptions{})
 }
 
+// send 执行 HTTP 请求并解析聊天回复
 pub fn (mut a Agent) send() !string {
 	body := a.build_request()
 
 	// 调试: 保存请求体
 	// os.write_file('./last_request.json', body) or {}
-
 	mut req := http.Request{
 		method: .post
-		url:    '${a.config.base_url}/chat/completions'
-		data:   body
+		url: '${a.config.base_url}/chat/completions'
+		data: body
 	}
 
 	// 设置请求头
 	req.header = http.new_custom_header_from_map({
-		'Authorization':      'Bearer ${a.config.api_key}'
-		'Content-Type':       'application/json'
+		'Authorization': 'Bearer ${a.config.api_key}'
+		'Content-Type':  'application/json'
 	}) or { return error('header: ${err}') }
 
 	resp := req.do() or { return error('http: ${err}') }
@@ -181,6 +187,7 @@ pub fn (mut a Agent) send() !string {
 // 工具调用 (Tool Calling — 修复 Bug 2+3)
 // ============================================================
 // 工具定义示例: parameters 必须是 json2.Any (JSON 对象, 不是字符串)
+// search_tool_def 示例工具定义，返回一个搜索工具的 ToolDef
 pub fn search_tool_def() ToolDef {
 	params := json2.decode[json2.Any]('{
 		"type": "object",
@@ -193,21 +200,22 @@ pub fn search_tool_def() ToolDef {
 	return ToolDef{
 		ty: 'function'
 		function: ToolFunction{
-			name:        'web_search'
+			name: 'web_search'
 			description: 'Search the web for current information'
-			parameters:  params
+			parameters: params
 		}
 	}
 }
 
 // 构建带工具调用的请求
+// build_request_with_tools 构建包含工具定义的请求 JSON
 pub fn (a Agent) build_request_with_tools(tools []ToolDef) string {
 	req := ChatRequest{
-		model:       a.config.model
-		messages:    a.history
+		model: a.config.model
+		messages: a.history
 		temperature: 0.7
-		stream:      false
-		tools:       tools
+		stream: false
+		tools: tools
 	}
 	return json2.encode[ChatRequest](req, json2.EncoderOptions{})
 }
@@ -215,21 +223,24 @@ pub fn (a Agent) build_request_with_tools(tools []ToolDef) string {
 // ============================================================
 // SSE 流式调用
 // ============================================================
+// chat_stream 流式聊天 — 按 token 回调处理增量输出
 pub fn (mut a Agent) chat_stream(user_input string, on_token fn(string)) !string {
 	a.user(user_input)
 	return a.send_stream(on_token)
 }
 
+// build_stream_request 构建流式请求 JSON（stream=true）
 pub fn (a Agent) build_stream_request() string {
 	req := ChatRequest{
-		model:       a.config.model
-		messages:    a.history
+		model: a.config.model
+		messages: a.history
 		temperature: 0.7
-		stream:      true // ⚠️ 必须带上 @[json: 'stream'] tag
+		stream: true // ⚠️ 必须带上 @[json: 'stream'] tag
 	}
 	return json2.encode[ChatRequest](req, json2.EncoderOptions{})
 }
 
+// send_stream 发送流式请求并通过 on_token 回调分发增量 token
 pub fn (mut a Agent) send_stream(on_token fn(string)) !string {
 	body := a.build_stream_request()
 
@@ -238,13 +249,11 @@ pub fn (mut a Agent) send_stream(on_token fn(string)) !string {
 	mut full := ''
 	mut req := http.Request{
 		method: .post
-		url:    '${a.config.base_url}/chat/completions'
-		data:   body
+		url: '${a.config.base_url}/chat/completions'
+		data: body
 		on_progress_body: fn [on_token] (req &http.Request, chunk []u8, so_far u64, expected u64, status int) ! {
 			// 回调中只做预期内副作用, 不累积状态
-			s := chunk.bytestr()
-			on_token(s)
-		}
+			s := chunk.bytestr()on_token(s)}
 	}
 
 	req.header = http.new_custom_header_from_map({

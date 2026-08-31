@@ -65,17 +65,44 @@ fn main() {
 		a := args[i]
 		match a {
 			'--arch' {
-				if i + 1 < args.len { arch = args[i + 1]; i++ } else { eprintln('build_deb: --arch needs a value'); exit(1) }
+				if i + 1 < args.len {
+					arch = args[i + 1]
+					i++
+				} else {
+					eprintln('build_deb: --arch needs a value')
+					exit(1)
+				}
 			}
 			'--output' {
-				if i + 1 < args.len { output_dir = args[i + 1]; i++ } else { eprintln('build_deb: --output needs a value'); exit(1) }
+				if i + 1 < args.len {
+					output_dir = args[i + 1]
+					i++
+				} else {
+					eprintln('build_deb: --output needs a value')
+					exit(1)
+				}
 			}
 			'--maintainer' {
-				if i + 1 < args.len { maintainer = args[i + 1]; i++ } else { eprintln('build_deb: --maintainer needs a value'); exit(1) }
+				if i + 1 < args.len {
+					maintainer = args[i + 1]
+					i++
+				} else {
+					eprintln('build_deb: --maintainer needs a value')
+					exit(1)
+				}
 			}
-			'--dry-run' { dry_run = true }
-			'--help', '-h' { usage(); exit(0) }
-			else { eprintln('build_deb: unknown flag `${a}`'); usage(); exit(1) }
+			'--dry-run' {
+				dry_run = true
+			}
+			'--help', '-h' {
+				usage()
+				exit(0)
+			}
+			else {
+				eprintln('build_deb: unknown flag `${a}`')
+				usage()
+				exit(1)
+			}
 		}
 		i++
 	}
@@ -128,22 +155,25 @@ fn main() {
 
 	deb_dir := os.join_path(staging, 'DEBIAN')
 	usr_bin := os.join_path(staging, 'usr', 'bin')
-	os.mkdir_all(deb_dir) or { eprintln('build_deb: mkdir DEBIAN failed: ${err}'); exit(1) }
-	os.mkdir_all(usr_bin) or { eprintln('build_deb: mkdir usr/bin failed: ${err}'); exit(1) }
+	os.mkdir_all(deb_dir) or {
+		eprintln('build_deb: mkdir DEBIAN failed: ${err}')
+		exit(1)
+	}
+	os.mkdir_all(usr_bin) or {
+		eprintln('build_deb: mkdir usr/bin failed: ${err}')
+		exit(1)
+	}
 
-	os.cp(bin_path, os.join_path(usr_bin, name)) or { eprintln('build_deb: copy binary failed: ${err}'); exit(1) }
+	os.cp(bin_path, os.join_path(usr_bin, name)) or {
+		eprintln('build_deb: copy binary failed: ${err}')
+		exit(1)
+	}
 
-	control := 'Package: ${name}\n' +
-		'Version: ${version}\n' +
-		'Section: utils\n' +
-		'Priority: optional\n' +
-		'Architecture: ${arch}\n' +
-		'Maintainer: ${maintainer}\n' +
-		'Depends: libc6 (>= 2.31)\n' +
-		'Description: V-language local-first AI agent CLI\n' +
-		' vaiv is a local-first AI coding agent written in V. It runs single-shot\n' +
-		' or REPL prompts against a configurable LLM provider.\n'
-	os.write_file(os.join_path(deb_dir, 'control'), control) or { eprintln('build_deb: write control failed: ${err}'); exit(1) }
+	control := 'Package: ${name}\n' + 'Version: ${version}\n' + 'Section: utils\n' + 'Priority: optional\n' + 'Architecture: ${arch}\n' + 'Maintainer: ${maintainer}\n' + 'Depends: libc6 (>= 2.31)\n' + 'Description: V-language local-first AI agent CLI\n' + ' vaiv is a local-first AI coding agent written in V. It runs single-shot\n' + ' or REPL prompts against a configurable LLM provider.\n'
+	os.write_file(os.join_path(deb_dir, 'control'), control) or {
+		eprintln('build_deb: write control failed: ${err}')
+		exit(1)
+	}
 
 	os.mkdir_all(output_dir) or { eprintln('build_deb: warn: mkdir output failed') }
 	staging_q := quote(staging)
