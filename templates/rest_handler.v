@@ -216,7 +216,8 @@ pub interface ItemStore {
 // ============================================================
 // 列表: GET /api/items?limit=20&page=1
 // ============================================================
-// list_items: 返回分页的 items 列表
+
+// list_items 返回分页的 items 列表
 pub fn (mut app App) list_items(mut ctx veb.Context) veb.Result {
 	// 先运行认证中间件（如果启用了）
 	auth_err := require_auth_middleware(ctx, app.config)
@@ -266,7 +267,8 @@ pub fn (mut app App) list_items(mut ctx veb.Context) veb.Result {
 // 详情: GET /api/items?id=xxx (使用查询参数而非路径参数)
 // **注意**: V 0.5.x 路径参数有代码生成问题，改用查询参数
 // ============================================================
-// get_item: 获取单个项，通过查询参数 id 返回详情
+
+// get_item 获取单个项，通过查询参数 id 返回详情
 pub fn (mut app App) get_item(mut ctx veb.Context) veb.Result {
 	id := ctx.query['id'] or { return respond_error(ctx, 400, 'missing id parameter', none) }
 
@@ -280,7 +282,8 @@ pub fn (mut app App) get_item(mut ctx veb.Context) veb.Result {
 // ============================================================
 // 创建: POST /api/items
 // ============================================================
-// create_item: 处理 POST 请求以创建新 Item
+
+// create_item 处理 POST 请求以创建新 Item
 pub fn (mut app App) create_item(mut ctx veb.Context) veb.Result {
 	// 先运行认证中间件（如果启用了）
 	auth_err := require_auth_middleware(ctx, app.config)
@@ -326,7 +329,8 @@ pub fn (mut app App) create_item(mut ctx veb.Context) veb.Result {
 // ============================================================
 // 更新: PUT /api/items
 // ============================================================
-// update_item: 处理 PUT 请求以更新存在的 Item
+
+// update_item 处理 PUT 请求以更新存在的 Item
 pub fn (mut app App) update_item(mut ctx veb.Context) veb.Result {
 	// 先运行认证中间件（如果启用了）
 	auth_err := require_auth_middleware(ctx, app.config)
@@ -380,7 +384,8 @@ pub fn (mut app App) update_item(mut ctx veb.Context) veb.Result {
 // ============================================================
 // 删除: DELETE /api/items
 // ============================================================
-// delete_item: 处理 DELETE 请求删除 Item
+
+// delete_item 处理 DELETE 请求删除 Item
 pub fn (mut app App) delete_item(mut ctx veb.Context) veb.Result {
 	// 先运行认证中间件（如果启用了）
 	auth_err := require_auth_middleware(ctx, app.config)
@@ -413,7 +418,8 @@ pub fn (mut app App) delete_item(mut ctx veb.Context) veb.Result {
 // ============================================================
 // 批量创建: POST /api/items/batch
 // ============================================================
-// batch_create: 处理批量 POST 请求（数组）
+
+// batch_create 处理批量 POST 请求（数组）
 pub fn (mut app App) batch_create(mut ctx veb.Context) veb.Result {
 	// 先运行认证中间件（如果启用了）
 	auth_err := require_auth_middleware(ctx, app.config)
@@ -466,7 +472,8 @@ pub fn (mut app App) batch_create(mut ctx veb.Context) veb.Result {
 // ============================================================
 // OPTIONS 端点：支持 CORS 预检请求
 // ============================================================
-// options_handler: OPTIONS 端点处理，支持 CORS 预检请求
+
+// options_handler OPTIONS 端点处理，支持 CORS 预检请求
 pub fn (mut app App) options_handler(mut ctx veb.Context) veb.Result {
 		if ctx.req.method == .options {
 			if app.config.allow_cors {
