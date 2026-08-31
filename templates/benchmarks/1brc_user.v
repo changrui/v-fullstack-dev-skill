@@ -8,21 +8,35 @@ import os
 import runtime
 
 #include <sys/mman.h>
+
 #include <string.h>
+
 #include <sys/stat.h>
+
 #include <fcntl.h>
+
 #include <unistd.h>
+
 #include <time.h>
 
 fn C.mmap(addr voidptr, length u64, prot int, flags int, fd int, offset i64) voidptr
+
 fn C.munmap(addr voidptr, length u64) int
+
 fn C.memchr(ptr voidptr, ch int, count u64) voidptr
+
 fn C.memcpy(dst voidptr, src voidptr, n u64) voidptr
+
 fn C.memcmp(a voidptr, b voidptr, n u64) int
+
 fn C.madvise(addr voidptr, length u64, advice int) int
+
 fn C.open(path &u8, flags int, mode int) int
+
 fn C.close(fd int) int
+
 fn C.fstat(fd int, buf voidptr) int
+
 fn C.clock_gettime(clockid int, tp voidptr) int
 
 const max_city_len = 64
@@ -81,8 +95,7 @@ fn hash_bytes(addr &u8, offset u64, len u32) u32 {
 	return h
 }
 
-@[direct_array_access]
-@[inline]
+@[direct_array_access; inline]
 fn (mut m CityHashMap) find_or_insert(addr &u8, offset u64, len u8) &CityHashEntry {
 	if len == 0 || len > max_city_len {
 		panic('invalid city length')
@@ -101,8 +114,8 @@ fn (mut m CityHashMap) find_or_insert(addr &u8, offset u64, len u8) &CityHashEnt
 			m.count++
 			return e
 		}
-		if e.hash == h && e.length == len && unsafe { C.memcmp(voidptr(&e.name[0]),
-			voidptr(&addr[offset]), u64(len)) } == 0 {
+		if e.hash == h && e.length == len && unsafe {
+			C.memcmp(voidptr(&e.name[0]), voidptr(&addr[offset]), u64(len))} == 0 {
 			return e
 		}
 		idx = (idx + 1) & (hash_cap - 1)
@@ -136,8 +149,7 @@ fn print_results(results CityHashMap, print_nicely bool) {
 	}
 }
 
-@[direct_array_access]
-@[inline]
+@[direct_array_access; inline]
 fn parse_temp(addr &u8, start u64, len int) i32 {
 	unsafe {
 		if len == 3 {
@@ -150,12 +162,10 @@ fn parse_temp(addr &u8, start u64, len int) i32 {
 				return -(i32(addr[start + 1] - 48) * 10 + i32(addr[start + 3] - 48))
 			}
 			// XX.X
-			return i32(addr[start] - 48) * 100 + i32(addr[start + 1] - 48) * 10 +
-				i32(addr[start + 3] - 48)
+			return i32(addr[start] - 48) * 100 + i32(addr[start + 1] - 48) * 10 + i32(addr[start + 3] - 48)
 		}
 		// len == 5, -XX.X
-		return -(i32(addr[start + 1] - 48) * 100 + i32(addr[start + 2] - 48) * 10 +
-			i32(addr[start + 4] - 48))
+		return -(i32(addr[start + 1] - 48) * 100 + i32(addr[start + 2] - 48) * 10 + i32(addr[start + 4] - 48))
 	}
 }
 

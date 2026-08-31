@@ -7,7 +7,6 @@
 //   - 无 order by, 在 V 中排序
 //
 // 依赖: V 0.5.x, db.sqlite (内置, 不需系统 libsqlite3)
-
 module store
 
 import db.sqlite
@@ -30,7 +29,7 @@ pub struct MessageRow {
 pub:
 	id         string @[primary]
 	session_id string
-	role       string  // system, user, assistant, tool
+	role       string // system, user, assistant, tool
 	content    string
 	created    i64
 }
@@ -63,7 +62,7 @@ pub fn open(path string) !Store {
 		create table MessageRow
 	} or { eprintln('create message table: ${err}') }
 
-	return Store{db: db}
+	return Store{ db: db }
 }
 
 pub fn (mut s Store) close() {
@@ -94,10 +93,10 @@ pub fn (s Store) list_sessions() ![]SessionRow {
 	return sorted
 }
 
-pub fn (s Store) get_session(id string) !?SessionRow {
+pub fn (s Store) get_session(id string) ?SessionRow {
 	rows := sql s.db {
 		select from SessionRow where id == id
-	} or { return error('select: ${err}') }
+	} or { return none }
 	if rows.len == 0 {
 		return none
 	}
@@ -107,8 +106,8 @@ pub fn (s Store) get_session(id string) !?SessionRow {
 pub fn (s Store) create_session(name string) !SessionRow {
 	now := time.now().unix_milli()
 	row := SessionRow{
-		id:      'sess_${now}_${name.hash()}'  // 生成唯一 string PK
-		name:    name
+		id: 'sess_${now}_${name.hash()}' // 生成唯一 string PK
+		name: name
 		created: now
 		updated: now
 	}
@@ -128,7 +127,7 @@ pub fn (s Store) delete_session(id string) ! {
 	} or { return error('delete: ${err}') }
 
 	// 也删除关联消息
-	s.db.exec('DELETE FROM MessageRow WHERE session_id == \'${id}\'') or {}
+	s.db.exec("DELETE FROM MessageRow WHERE session_id == '${id}'") or {}
 }
 
 // ============================================================
@@ -157,11 +156,11 @@ pub fn (s Store) list_messages(session_id string) ![]MessageRow {
 pub fn (s Store) add_message(session_id string, role string, content string) !MessageRow {
 	now := time.now().unix_milli()
 	row := MessageRow{
-		id:         'msg_${now}_${session_id.hash()}'
+		id: 'msg_${now}_${session_id.hash()}'
 		session_id: session_id
-		role:       role
-		content:    content
-		created:    now
+		role: role
+		content: content
+		created: now
 	}
 	sql s.db {
 		insert row into MessageRow
@@ -179,7 +178,7 @@ pub fn (s Store) clear_messages() ! {
 // ============================================================
 pub fn (mut s Store) replace_all(session_id string, msgs []MessageRow) ! {
 	// 使用原始 SQL 执行批量操作
-	s.db.exec('DELETE FROM MessageRow WHERE session_id == \'${session_id}\'') or {}
+	s.db.exec("DELETE FROM MessageRow WHERE session_id == '${session_id}'") or {}
 	for msg in msgs {
 		sql s.db {
 			insert msg into MessageRow

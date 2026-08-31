@@ -7,20 +7,21 @@
 //   ./bin/app
 //
 // 依赖: V 0.5.x, veb (内置)
-
 module main
 
 import veb
 import veb.sse
 import os
+import time
 
 // ============================================================
 // 应用状态
 // ============================================================
 pub struct App {
 	veb.StaticHandler
-pub mut:
+
 	// 应用级状态: 数据库连接、配置、缓存等
+pub mut:
 	started_at i64
 }
 
@@ -52,7 +53,7 @@ pub fn (mut app App) index(mut ctx WebCtx) veb.Result {
 	// 模板变量来自 handler 局部作用域
 	title := 'Welcome'
 	message := 'Veb is running'
-	return ctx.html('$veb.html('templates/index.html')')
+	return ctx.html('\$veb.html(', templates / index.html, ')')
 }
 
 // ============================================================
@@ -96,8 +97,8 @@ pub fn (mut app App) list_items(mut ctx WebCtx) veb.Result {
 
 	// 查询数据库...
 	return ctx.json({
-		'items': '[]'
-		'limit': limit
+		'items':  '[]'
+		'limit':  limit
 		'offset': offset
 	})
 }

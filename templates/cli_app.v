@@ -6,7 +6,6 @@
 // Run:    ./bin/myapp --help
 //
 // 依赖: V 0.5.x, os (内置), term (内置)
-
 module main
 
 import os
@@ -17,9 +16,10 @@ import json2
 // 配置 (环境变量 + 命令行参数)
 // ============================================================
 pub struct Config {
-pub mut:
+
 	// 命令
-	command string   // subcommand
+pub mut:
+	command string // subcommand
 	args    []string // subcommand args
 
 	// 选项
@@ -36,10 +36,10 @@ pub mut:
 pub fn config_from_env() Config {
 	return Config{
 		verbose: os.getenv('VERBOSE', 'false') == 'true'
-		output:  os.getenv('OUTPUT_FORMAT', 'text')
-		limit:   os.getenv('LIMIT', '10').int()
+		output: os.getenv('OUTPUT_FORMAT', 'text')
+		limit: os.getenv('LIMIT', '10').int()
 		db_path: os.getenv('DB_PATH', './data/app.db')
-		port:    os.getenv('PORT', '8080').int()
+		port: os.getenv('PORT', '8080').int()
 	}
 }
 
@@ -195,10 +195,14 @@ fn main() {
 	}
 
 	match cfg.command {
-		'init' { cmd_init(cfg) or { print_error('init: ${err}'); exit(1) } }
-		'run' { cmd_run(cfg) or { print_error('run: ${err}'); exit(1) } }
-		'status' { cmd_status(cfg) or { print_error('status: ${err}'); exit(1) } }
-		'export' { cmd_export(cfg) or { print_error('export: ${err}'); exit(1) } }
+		'init' { cmd_init(cfg) or {
+			print_error('init: ${err}')exit(1)} }
+		'run' { cmd_run(cfg) or {
+			print_error('run: ${err}')exit(1)} }
+		'status' { cmd_status(cfg) or {
+			print_error('status: ${err}')exit(1)} }
+		'export' { cmd_export(cfg) or {
+			print_error('export: ${err}')exit(1)} }
 		else {
 			print_error('Unknown command: ${cfg.command}')
 			print_usage()

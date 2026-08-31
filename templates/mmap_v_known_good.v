@@ -7,21 +7,33 @@ module yourmod
 import os
 
 #include <sys/mman.h>
+
 #include <unistd.h>
+
 #include <fcntl.h>
+
 #include <string.h>
 
 fn C.mmap(addr voidptr, len u64, prot i32, flags i32, fd i32, offset i64) voidptr
+
 fn C.munmap(addr voidptr, len u64) i32
+
 fn C.madvise(addr voidptr, len u64, advice i32) i32
+
 fn C.open(path &char, flags i32, mode i32) i32
+
 fn C.close(fd i32) i32
+
 fn C.memcpy(dst voidptr, src voidptr, n u64) voidptr
 
 const prot_read = 1 // PROT_READ
+
 const map_private = 0x02 // MAP_PRIVATE
+
 const madv_willneed = 3 // MADV_WILLNEED
+
 const o_rdonly = 0 // O_RDONLY
+
 
 // returns (data []u8, addr voidptr, size int, fd int)
 pub fn mmap_file(path string) !([]u8, voidptr, int, int) {

@@ -4,7 +4,6 @@
 //
 // 运行: ~/v/v -silent test .
 // 单个: ~/v/v test test_suite_test.v
-
 module main
 
 import os
@@ -110,7 +109,7 @@ fn test_sqlite_temp() {
 	db.exec("INSERT INTO items (id, name) VALUES ('2', 'world')") or { panic(err) }
 
 	// 查询
-	rows := db.exec("SELECT * FROM items ORDER BY id") or { panic(err) }
+	rows := db.exec('SELECT * FROM items ORDER BY id') or { panic(err) }
 	assert rows.len == 2, 'expected 2 rows, got ${rows.len}'
 
 	first := rows[0]

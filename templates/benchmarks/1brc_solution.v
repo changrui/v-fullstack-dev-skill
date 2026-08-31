@@ -18,7 +18,6 @@
 //
 // Verified benchmark (10M rows / 411 cities, 24-core box):
 //   1 thread:  ~492 ms    8 threads: ~77 ms   (target: < 2000 ms)
-
 import os
 import time
 import math
@@ -31,11 +30,12 @@ import math
 //   fn C.mmap(...) voidptr → declares the C function for V to call
 // C macros PROT_READ / MAP_SHARED are referenced as C.PROT_READ etc.
 // =========================================================================
-
 #include <sys/mman.h>
+
 #include "c_simd.c"  // place c_simd.c in the build cwd (or use an absolute path)
 
 fn C.mmap(addr voidptr, len u64, prot i32, flags i32, fd i32, offset i64) voidptr
+
 fn C.munmap(addr voidptr, len u64) i32
 
 // =========================================================================
@@ -47,20 +47,18 @@ fn C.munmap(addr voidptr, len u64) i32
 // included source), not a V-generated stub. We call it as C.simd_parse_...
 // It parses "5.8" / "-12.3" ASCII bytes to f32.
 // =========================================================================
-
 @[c_extern]
 fn C.simd_parse_float_fast(buf &u8, len int) f32
 
 // =========================================================================
 // SECTION 3: Data structures
 // =========================================================================
-
 struct CityStats {
 mut:
 	min_temp f32
 	max_temp f32
 	sum_temp f64
-	count  u64
+	count    u64
 }
 
 struct MMapFile {
@@ -94,7 +92,6 @@ fn (mut mf MMapFile) unmap() {
 // We scan byte-by-byte for ';' (59) and '\n' (10). The temperature substring
 // is handed to the C SIMD parser. Pointer indexing needs `unsafe { }`.
 // =========================================================================
-
 @[direct_array_access]
 fn process_chunk(addr &u8, from u64, to u64) map[string]CityStats {
 	mut results := map[string]CityStats{}
@@ -136,8 +133,12 @@ fn process_chunk(addr &u8, from u64, to u64) map[string]CityStats {
 					}
 				} else {
 					mut s := results[city]
-					if temp < s.min_temp { s.min_temp = temp }
-					if temp > s.max_temp { s.max_temp = temp }
+					if temp < s.min_temp {
+						s.min_temp = temp
+					}
+					if temp > s.max_temp {
+						s.max_temp = temp
+					}
 					s.sum_temp += f64(temp)
 					s.count++
 					results[city] = s
@@ -154,7 +155,6 @@ fn process_chunk(addr &u8, from u64, to u64) map[string]CityStats {
 // =========================================================================
 // SECTION 5: Combine per-thread maps → sorted output
 // =========================================================================
-
 fn combine_results(results []map[string]CityStats) map[string]CityStats {
 	mut combined := map[string]CityStats{}
 	for result in results {
@@ -163,8 +163,12 @@ fn combine_results(results []map[string]CityStats) map[string]CityStats {
 				combined[city] = r
 			} else {
 				mut e := combined[city]
-				if r.max_temp > e.max_temp { e.max_temp = r.max_temp }
-				if r.min_temp < e.min_temp { e.min_temp = r.min_temp }
+				if r.max_temp > e.max_temp {
+					e.max_temp = r.max_temp
+				}
+				if r.min_temp < e.min_temp {
+					e.min_temp = r.min_temp
+				}
 				e.sum_temp += r.sum_temp
 				e.count += r.count
 				combined[city] = e
@@ -212,7 +216,6 @@ fn print_results(results map[string]CityStats, human_readable bool) {
 // =========================================================================
 // SECTION 6: Parallel dispatch (spawn + thread[].wait())
 // =========================================================================
-
 fn process_in_parallel(mf MMapFile, thread_count u32) map[string]CityStats {
 	mut threads := []thread map[string]CityStats{}
 	approx := mf.size / thread_count
@@ -237,7 +240,6 @@ fn process_in_parallel(mf MMapFile, thread_count u32) map[string]CityStats {
 // =========================================================================
 // SECTION 7: Main
 // =========================================================================
-
 fn main() {
 	if os.args.len < 2 {
 		eprintln('Usage: 1brc [--human-readable] [--threads N] <datafile>')

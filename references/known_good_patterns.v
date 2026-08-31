@@ -1,7 +1,6 @@
 // known_good_patterns.v — copy-paste-corrected V idioms for Go→V ports.
 // Every pattern below compiles under V 0.5.x and replaces a go2v-mangled emit.
 // These are meant to be COPIED and ADAPTED, not compiled as-is.
-
 module example
 
 import strings
@@ -75,7 +74,10 @@ pub fn (mut fmq FileMutationQueue) read_file_safe(path string) !string {
 	fmq.mu.unlock()
 
 	l.mu.lock()
-	content := os.read_file(path) or { l.mu.unlock(); return err }
+	content := os.read_file(path) or {
+		l.mu.unlock()
+		return err
+	}
 	l.mu.unlock()
 
 	fmq.mu.lock()
