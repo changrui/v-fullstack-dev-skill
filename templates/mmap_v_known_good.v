@@ -35,7 +35,7 @@ const madv_willneed = 3 // MADV_WILLNEED
 const o_rdonly = 0 // O_RDONLY
 
 
-// returns (data []u8, addr voidptr, size int, fd int)
+// mmap_file: 返回 (data []u8, addr voidptr, size int, fd int)，使用 mmap 打开文件并返回内容切片与底层映射信息
 pub fn mmap_file(path string) !([]u8, voidptr, int, int) {
 	fd := C.open(&char(path.str), o_rdonly, 0)
 	if fd < 0 {
@@ -54,6 +54,7 @@ pub fn mmap_file(path string) !([]u8, voidptr, int, int) {
 	return data, addr, size, fd
 }
 
+// munmap_file: 释放 mmap 映射并关闭文件描述符
 pub fn munmap_file(addr voidptr, size int, fd int) {
 	if addr != voidptr(0) {
 		C.munmap(addr, u64(size))
