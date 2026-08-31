@@ -211,6 +211,7 @@ pub interface ItemStore {
 	get(id string) ?Item
 	create(item Item) ?Item
 	delete(id string) ?bool
+}
 
 // ============================================================
 // 列表: GET /api/items?limit=20&page=1
@@ -460,11 +461,12 @@ pub fn (mut app App) batch_create(mut ctx veb.Context) veb.Result {
 	_ = items
 
 	return ctx.text('created ${items.len} items', status: 201)
+}
 
-	// ============================================================
-	// OPTIONS 端点：支持 CORS 预检请求
-	// ============================================================
-	fn (mut app App) options_handler(mut ctx veb.Context) veb.Result {
+// ============================================================
+// OPTIONS 端点：支持 CORS 预检请求
+// ============================================================
+pub fn (mut app App) options_handler(mut ctx veb.Context) veb.Result {
 		if ctx.req.method == .options {
 			if app.config.allow_cors {
 				ctx.res.header.add('Access-Control-Allow-Origin', app.config.allowed_origin)
@@ -476,4 +478,3 @@ pub fn (mut app App) batch_create(mut ctx veb.Context) veb.Result {
 		}
 		return respond_error(ctx, 405, 'method not allowed', none)
 	}
-}
