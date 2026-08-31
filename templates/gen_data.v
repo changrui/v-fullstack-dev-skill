@@ -21,7 +21,7 @@ import math
 // 411 cities (official 1BRC list subset). Expand from
 // ~/v/examples/1brc/make-samples/cities.txt for the full set.
 // Order/count does not affect parser correctness — only variety matters.
-const cities = [
+const cities = [436]string{
 	'Abha',
 	'Abidjan',
 	'Abéché',
@@ -433,7 +433,7 @@ const cities = [
 	'Zürich',
 	'Ürümqi',
 	'İzmir',
-]
+}
 
 fn main() {
 	if os.args.len < 3 {
